@@ -5,6 +5,9 @@ Web Middleware for Golang
 
 At this time, Kwiscale is at the very begining of developpement. But you can test and give'em some pull-request to improve it.
 
+
+Check documentation: http://godoc.org/github.com/metal3d/kwiscale
+
 How to use
 ==========
 
