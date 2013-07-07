@@ -1,4 +1,4 @@
-package cephei
+package kwiscale
 
 import "net/http"
 import "regexp"
