@@ -103,7 +103,7 @@ Now create templates/home directory::
     
     mkdir templates/home
 
-Create templates/home/welcom.html::
+Create templates/home/welcome.html::
     
     {{ override "main.html" }}
 
