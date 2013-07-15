@@ -1,10 +1,10 @@
 package kwiscale
 
 import (
-    "net/http"
-    "regexp"
-    "log"
-    "fmt"
+	"fmt"
+	"log"
+	"net/http"
+	"regexp"
 )
 
 type RouteMap struct {
@@ -14,6 +14,9 @@ type RouteMap struct {
 
 // handlers stack
 var globalhandlers []RouteMap
+
+// sessions handler
+var sessions map[string]map[string]interface{}
 
 // add an hancler to the stack
 func AddHandler(r IRequestHandler) {
@@ -48,8 +51,8 @@ func dispatch(w http.ResponseWriter, r *http.Request) {
 	for _, route := range globalhandlers {
 		if res := route.Route.FindStringSubmatch(rcall); len(res) > 0 {
 
-		    handler := route.Handler
-            //handler := _handler
+			handler := route.Handler
+			//handler := _handler
 
 			if len(res) > 1 {
 				// params captured
