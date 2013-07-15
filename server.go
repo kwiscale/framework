@@ -40,7 +40,7 @@ func dispatch(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println("ERROR", err)
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "%v", err)
 		}
 	}()
@@ -78,6 +78,6 @@ func dispatch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.WriteHeader(404)
+	w.WriteHeader(http.StatusNotFound)
 
 }

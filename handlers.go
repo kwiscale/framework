@@ -166,6 +166,12 @@ func (this *RequestHandler) SetSession(name string, val interface{}) {
 	s[name] = val
 }
 
+// Redirect to given url
 func (this *RequestHandler) Redirect(url string) {
-	http.Redirect(this.Response, this.Request, url, 302)
+	http.Redirect(this.Response, this.Request, url, http.StatusSeeOther)
+}
+
+// unset the entire session for the current request
+func (this *RequestHandler) EmptySession() {
+    delete(sessions, this.SessionId)
 }
