@@ -51,9 +51,10 @@ Then in you main.go::
     )
 
     func main() {
-        h := handlers.IndexHandler() 
+        h := handlers.IndexHandler{}
         // routes is a slice because an handler can answer several routes
-        kwiscale.AddHandler(&h, []string{"/home"})
+        h.Routes = []string{"/home"}
+        kwiscale.AddHandler(&h)
         kwiscale.Serve(":8081") //listen :8081
     }
 
