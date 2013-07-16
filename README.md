@@ -25,41 +25,46 @@ The common way to create handlers is to append a package::
     vim handlers/index.go
 
 
-Let's try an example::
+Let's try an example:
 
-    package handlers
+```go
+package handlers
 
-    import "github.com/metal3d/kwiscale"
+import "github.com/metal3d/kwiscale"
 
-    // this is the Index Handler that
-    // is composed by a RequestHandler
-    type IndexHandler struct {
-        // note this, we now use Tag to declare route Inside the Handler
-        kwiscale.RequestHandler `route:"/home"`
-    }
+// this is the Index Handler that
+// is composed by a RequestHandler
+type IndexHandler struct {
+    // note this, we now use Tag to declare route Inside the Handler
+    kwiscale.RequestHandler `route:"/home"`
+}
 
-    func (this *IndexHandler) Get () {
-        this.Write("Hello !")
-    }
+func (this *IndexHandler) Get () {
+    this.Write("Hello !")
+}
+```
 
 Then in you main.go::
-    
-    package main
-    
-    import (
-        "github.com/metal3d/kwiscale"
-        "./handlers"
-    )
 
-    func main() {
-        h := handlers.IndexHandler{}
-        kwiscale.AddHandler(&h)
+```go
 
-        kwiscale.Serve(":8081") //listen :8081
-    }
+package main
+
+import (
+    "github.com/metal3d/kwiscale"
+    "./handlers"
+)
+
+func main() {
+    h := handlers.IndexHandler{}
+    kwiscale.AddHandler(&h)
+
+    kwiscale.Serve(":8081") //listen :8081
+}
+```
 
 
-Then run::
+Then run:
 
     go run main.go
 
@@ -112,13 +117,14 @@ Create templates/home/welcome.html::
         This the welcome message {{ .msg }}
     {{ end }}
 
-In handlers/index.go::
+In handlers/index.go:
 
-    func (this *IndexHandler) Get() {
-        this.Render("home/welcome.html", map[string]string{
-            "title" : "Welcome !!!",
-            "msg"   : "Hello you",
-        })
-    }
-
+```go
+func (this *IndexHandler) Get() {
+    this.Render("home/welcome.html", map[string]string{
+        "title" : "Welcome !!!",
+        "msg"   : "Hello you",
+    })
+}
+```
 
