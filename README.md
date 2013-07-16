@@ -11,11 +11,11 @@ Check documentation: http://godoc.org/github.com/metal3d/kwiscale
 How to use
 ==========
 
-Install with "go get" command::
+Install with "go get" command:
 
     go get github.com/metal3d/kwiscale
 
-Create a project::
+Create a project:
 
     mkdir ~/myproject && cd ~/myproject
 
@@ -23,7 +23,6 @@ The common way to create handlers is to append a package::
 
     mkdir handlers
     vim handlers/index.go
-
 
 Let's try an example:
 
@@ -89,27 +88,28 @@ The handler.Render method takes template path and context to implement. But it a
 
 Let's take an example. 
 
-Append templates directory::
+Append templates directory:
     
     mkdir templates
 
-Then create templates/main.html::
+Then create templates/main.html:
 
-    <!DOCTYPE html>
-    <html>
-        <head>
-            <title>{{ if .title }}{{.title}}{{ else }} Default title {{ end }}</title>
-        </head>
-        <body>
-            {{ template "CONTENT" . }}
-        </body>
-    </html>
-
-Now create templates/home directory::
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{{ if .title }}{{.title}}{{ else }} Default title {{ end }}</title>
+    </head>
+    <body>
+        {{ template "CONTENT" . }}
+    </body>
+</html>
+```
+Now create templates/home directory:
     
     mkdir templates/home
 
-Create templates/home/welcome.html::
+Create templates/home/welcome.html:
     
     {{ override "main.html" }}
 
