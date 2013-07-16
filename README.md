@@ -34,7 +34,8 @@ Let's try an example::
     // this is the Index Handler that
     // is composed by a RequestHandler
     type IndexHandler struct {
-        kwiscale.RequestHandler
+        // note this, we now use Tag to declare route Inside the Handler
+        kwiscale.RequestHandler `route:"/home"`
     }
 
     func (this *IndexHandler) Get () {
@@ -52,9 +53,8 @@ Then in you main.go::
 
     func main() {
         h := handlers.IndexHandler{}
-        // routes is a slice because an handler can answer several routes
-        h.Routes = []string{"/home"}
         kwiscale.AddHandler(&h)
+
         kwiscale.Serve(":8081") //listen :8081
     }
 
@@ -122,5 +122,3 @@ In handlers/index.go::
     }
 
 
-
-    
