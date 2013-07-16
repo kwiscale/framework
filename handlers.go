@@ -60,7 +60,6 @@ type RequestHandler struct {
 	SessionId string
 }
 
-
 // method that set request and response object
 func (this *RequestHandler) setParams(w http.ResponseWriter, r *http.Request, urlparams []string) {
 	this.Response = w
@@ -168,5 +167,5 @@ func (this *RequestHandler) Redirect(url string) {
 
 // unset the entire session for the current request
 func (this *RequestHandler) EmptySession() {
-    delete(sessions, this.SessionId)
+	delete(sessions, this.SessionId)
 }
