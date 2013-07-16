@@ -2,13 +2,12 @@ package kwiscale
 
 import (
     "testing"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 )
 
 type TestHandler struct {
-    RequestHandler
+    RequestHandler `route:"/foo"`
 }
 
 func (t *TestHandler) Get() {
@@ -18,8 +17,6 @@ func (t *TestHandler) Get() {
 func Init () {
 
     h := TestHandler{}
-    h.Routes = []string{"/foo"}
-
     AddHandler(&h)
 }
 
@@ -35,9 +32,8 @@ func Test200(t *testing.T) {
 	w := httptest.NewRecorder()
 	dispatch(w, req)
 
-	fmt.Printf("%d - %s", w.Code, w.Body.String())
     if w.Code != http.StatusOK {
-        t.Fatalf("Status is not 200: %v", w.Code)
+        t.Fatalf("Status is not 200: %v\n", w.Code)
     }
 }
 
@@ -52,8 +48,7 @@ func Test404 (t *testing.T) {
 	w := httptest.NewRecorder()
 	dispatch(w, req)
 
-	fmt.Printf("%d - %s", w.Code, w.Body.String())
     if w.Code != http.StatusNotFound {
-        t.Fatalf("Status is not 404: %v", w.Code)
+        t.Fatalf("Status is not 404: %v\n", w.Code)
     }
 }

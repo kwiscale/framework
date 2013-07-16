@@ -47,7 +47,6 @@ type IRequestHandler interface {
 	GetSession(name string) interface{}
 	SetSession(name string, value interface{})
 
-	getRoutes() []string
 	setParams(w http.ResponseWriter, r *http.Request, u []string)
 }
 
@@ -61,10 +60,6 @@ type RequestHandler struct {
 	SessionId string
 }
 
-// return routes that handler can answer
-func (this *RequestHandler) getRoutes() []string {
-	return this.Routes
-}
 
 // method that set request and response object
 func (this *RequestHandler) setParams(w http.ResponseWriter, r *http.Request, urlparams []string) {

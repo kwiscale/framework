@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+    "reflect"
 )
 
 type RouteMap struct {
@@ -20,11 +21,12 @@ var sessions map[string]map[string]interface{}
 
 // add an hancler to the stack
 func AddHandler(r IRequestHandler) {
-	for _, route := range r.getRoutes() {
-		reg := regexp.MustCompile(route)
-		route := RouteMap{reg, r}
-		globalhandlers = append(globalhandlers, route)
-	}
+    field,_ := reflect.TypeOf(r).Elem().FieldByName("RequestHandler")
+    route := field.Tag.Get("route")
+    log.Printf("Append route: %s", route)
+    reg := regexp.MustCompile(route)
+    routemap := RouteMap{reg, r}
+    globalhandlers = append(globalhandlers, routemap)
 }
 
 // start to serve on given address:port
