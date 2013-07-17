@@ -20,7 +20,7 @@ Example:
     }
 
 
-Kwiscale append some features that are needed to easilly develop web application or REST API. 
+Kwiscale appends some features that are needed to easilly develop web application or REST API. 
 
 Template:
 
