@@ -53,7 +53,6 @@ type IRequestHandler interface {
 // object that will handler routes and request information
 type RequestHandler struct {
 	IRequestHandler
-	Routes    []string
 	Response  http.ResponseWriter
 	Request   *http.Request
 	UrlParams []string
