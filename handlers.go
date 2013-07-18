@@ -50,7 +50,17 @@ type IRequestHandler interface {
 	setParams(w http.ResponseWriter, r *http.Request, u []string)
 }
 
-// object that will handler routes and request information
+// RequestHandler should be "override" by your handlers. Then your handlers can 
+// redefine Get(), Put(),... methods (see: IRequestHandler)
+//
+// Example:
+//      type IndexHander struct {
+//          kwiscale.RequestHandler `route:"/index"`
+//      }
+//      
+//      func (i *IndexHandler) Get(){
+//          //...
+//      }
 type RequestHandler struct {
 	IRequestHandler
 	Response  http.ResponseWriter
@@ -98,7 +108,7 @@ func (this *RequestHandler) Render(tpl string, context interface{}) {
 }
 
 // generate a session uuid
-func (this *RequestHandler) GenSessionID() {
+func (this *RequestHandler) genSessionID() {
 
 	f, _ := os.Open("/dev/urandom")
 	b := make([]byte, 16)
@@ -114,7 +124,7 @@ func (this *RequestHandler) CheckSessid() {
 	if id, err := this.Request.Cookie("SESSID"); err == nil {
 		this.SessionId = id.Value
 	} else {
-		this.GenSessionID()
+		this.genSessionID()
 	}
 
 	c := http.Cookie{

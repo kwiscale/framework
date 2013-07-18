@@ -44,7 +44,7 @@ func GetConfig() *Config {
     return &config
 }
 
-// add an hancler to the stack
+// AddHandler adds handlers to the handlers stack. 
 func AddHandler(requests...  IRequestHandler) {
     for _, r := range requests {
         field, _ := reflect.TypeOf(r).Elem().FieldByName("RequestHandler")
@@ -56,7 +56,10 @@ func AddHandler(requests...  IRequestHandler) {
     }
 }
 
-// start to serve on given address:port
+// Serve start to serve on given address.
+//
+// Example:
+//      kwiscale.Server(":8080")
 func Serve(address string) {
 	http.Handle("/statics/", http.StripPrefix("/statics", http.FileServer(http.Dir("./statics"))))
 	http.HandleFunc("/", dispatch)

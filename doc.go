@@ -5,7 +5,9 @@ Kwiscale is a middleware/framework that is designed to work "as" WSGI implementa
 The main goal is to let you develop "handlers" that have HTTP verbs as Go method.
 
 Example:
-    
+
+    // __/handlers/myhandler.go
+
     package handlers
 
     import "github.com/metal3d/kwiscale"
@@ -19,6 +21,22 @@ Example:
         h.Write("Hello !")
     }
 
+
+Now, in your main file:
+
+    // __/main.go
+
+    package main
+    import "github.com/metal3d/kwiscale"
+    import "./handlers"
+
+    func main() {
+        kwiscale.AddHandler(&handlers.MyHandler{})
+        kwiscale.Server(":8080")
+    }
+
+
+Launching "go run main.go" starts server, you can visit http://127.0.0.1:8080/foo 
 
 Kwiscale appends some features that are needed to easilly develop web application or REST API. 
 
