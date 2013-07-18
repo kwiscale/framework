@@ -10,7 +10,7 @@ func getCachedTemplate(path string) string {
 	}
 
 	if cache[path] == "" {
-		content, _ := ioutil.ReadFile("templates/" + path)
+		content, _ := ioutil.ReadFile(GetConfig().Templates + "/" + path)
 		cache[path] = string(content)
 	}
 
