@@ -8,6 +8,17 @@ import (
 	"regexp"
 )
 
+type Config struct {
+    // static dir
+    Statics string
+
+    // template dir
+    Templates string
+
+    // Session cookie name 
+    SessID  string
+}
+
 type RouteMap struct {
 	Route   *regexp.Regexp
 	Handler IRequestHandler
@@ -15,18 +26,34 @@ type RouteMap struct {
 
 // handlers stack
 var globalhandlers []RouteMap
+var config Config
 
 // sessions handler
 var sessions map[string]map[string]interface{}
 
+// GetConfig returns a pointer to the server configuration
+func GetConfig() *Config {
+    if config.Statics == "" {
+        config = Config{
+            Statics     : "./statics",
+            Templates   : "./templates",
+            SessID      : "SESSID",
+        }
+
+    }
+    return &config
+}
+
 // add an hancler to the stack
-func AddHandler(r IRequestHandler) {
-	field, _ := reflect.TypeOf(r).Elem().FieldByName("RequestHandler")
-	route := field.Tag.Get("route")
-	log.Printf("Append route: %s", route)
-	reg := regexp.MustCompile(route)
-	routemap := RouteMap{reg, r}
-	globalhandlers = append(globalhandlers, routemap)
+func AddHandler(requests...  IRequestHandler) {
+    for _, r := range requests {
+        field, _ := reflect.TypeOf(r).Elem().FieldByName("RequestHandler")
+        route := field.Tag.Get("route")
+        log.Printf("Append route: %s", route)
+        reg := regexp.MustCompile(route)
+        routemap := RouteMap{reg, r}
+        globalhandlers = append(globalhandlers, routemap)
+    }
 }
 
 // start to serve on given address:port
