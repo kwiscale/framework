@@ -23,7 +23,7 @@ func TestFormTemplateInput(t *testing.T) {
 	data := T{"Patrice", "mypass", "My Address", genders}
 
 	res := renderForm(data)
-	if len(res) != 4 {
-		t.Errorf("the result is not correct %v", res)
-	}
+    if len(res.Fields) != 4 {
+        t.Error( "not good fields number: ", len(res.Fields))
+    }
 }

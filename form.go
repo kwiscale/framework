@@ -10,9 +10,9 @@ package kwiscale
 
 import (
 	"fmt"
-	"html/template"
 	"reflect"
 	"strings"
+    "html/template"
 )
 
 var TPLTEXTINPUT string = `
@@ -42,12 +42,58 @@ var TPLSELECT string = `
 var TPLOPTION string = `
     <option value="%s">%s</option>`
 
-func renderForm(s interface{}) []string {
 
-	ret := []string{}
+
+type Field struct {
+    Tag string
+    Type string
+    Attributes string
+    Value string
+    Label string
+    Name string
+}
+
+func (f Field) String() string {
+
+    var ret string
+
+    switch (f.Type) {
+		case "text":
+			ret = fmt.Sprintf(TPLTEXTINPUT, f.Label, f.Name, f.Value, f.Attributes)
+		case "password":
+			ret = fmt.Sprintf(TPLPWDINPUT, f.Label, f.Name, f.Value, f.Attributes)
+		case "textarea":
+			ret = fmt.Sprintf(TPLTEXTAREA, f.Label, f.Name, f.Attributes, f.Value)
+		case "select":
+			ret = fmt.Sprintf(TPLSELECT, f.Label, f.Name, f.Attributes, f.Value)
+		default:
+			panic("error " + f.Type + " not known")
+    }
+
+    return string(template.HTML(ret))
+}
+
+func (f Field) Html() template.HTML {
+    return template.HTML(f.String())
+}
+
+
+type Form struct {
+    Fields []Field
+}
+
+func (f *Form) Append (field Field) {
+    f.Fields = append(f.Fields, field)
+}
+
+
+
+
+func renderForm(s interface{}) *Form {
+
 	v := reflect.TypeOf(s)
 	value := reflect.ValueOf(s)
-
+    form := new(Form)
 	for i := 0; i < v.NumField(); i++ {
 
 		f := v.Field(i)
@@ -86,30 +132,20 @@ func renderForm(s interface{}) []string {
 			}
 		}
 
-		switch parts[0] {
-		case "text":
-			ret = append(ret, fmt.Sprintf(TPLTEXTINPUT, label, f.Name, val, req))
-		case "password":
-			ret = append(ret, fmt.Sprintf(TPLPWDINPUT, label, f.Name, val, req))
-		case "textarea":
-			ret = append(ret, fmt.Sprintf(TPLTEXTAREA, label, f.Name, req, val))
-		case "select":
-			ret = append(ret, fmt.Sprintf(TPLSELECT, label, f.Name, req, val))
-		default:
-			panic("error " + parts[0] + " not known")
-		}
+        field := Field{
+            Label: label,
+            Value: val,
+            Attributes: req,
+            Name: f.Name,
+            Type: parts[0],
+        }
+
+        form.Append(field)
+
 	}
-	return ret
+	return form
 }
 
-func CreateForm(T interface{}) template.HTML {
-
-	s := renderForm(T)
-	r := ""
-	for _, i := range s {
-		r += i
-	}
-
-	return template.HTML(r)
-
+func CreateForm(T interface{}) *Form {
+	 return renderForm(T)
 }
