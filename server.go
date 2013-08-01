@@ -2,15 +2,17 @@ package kwiscale
 
 import (
 	//"fmt"
-	//"log"
+	"log"
 	"net/http"
 	"reflect"
 	"regexp"
 	//"github.com/gosexy/gettext"
 	"strings"
+    "time"
 )
 
-type Config struct {
+// Configuration structure
+type configStruct struct {
 	// static dir
 	Statics string
 
@@ -19,6 +21,9 @@ type Config struct {
 
 	// Session cookie name
 	SessID string
+
+    // Session Max Age (in seconds)
+    SessionTTL time.Duration
 
 	// Default language
 	Lang string
@@ -31,19 +36,19 @@ type RouteMap struct {
 
 // handlers stack
 var globalhandlers []RouteMap
-var config Config
+var config configStruct
 
-// sessions handler
-var sessions map[string]map[string]interface{}
+
 
 // GetConfig returns a pointer to the server configuration
-func GetConfig() *Config {
+func GetConfig() *configStruct {
 	if config.Statics == "" {
-		config = Config{
+		config = configStruct{
 			Statics:   "./statics",
 			Templates: "./templates",
 			SessID:    "SESSID",
 			Lang:      "en_US",
+            SessionTTL: time.Second * 10  ,
 		}
 		/*
 		   log.Println("config gettext")
@@ -75,6 +80,9 @@ func AddHandler(requests ...IRequestHandler) {
 // Example:
 //      kwiscale.Server(":8080")
 func Serve(address string) {
+    sessions = make(map[string]map[string]interface{})
+    log.Println(sessions)
+    go checkSessionsTTL()
 	http.Handle("/statics/", http.StripPrefix("/statics", http.FileServer(http.Dir("./statics"))))
 	http.HandleFunc("/", dispatch)
 	http.ListenAndServe(address, nil)

@@ -1,10 +1,8 @@
 package kwiscale
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -42,13 +40,6 @@ type RequestHandler struct {
 	Request   *http.Request
 	UrlParams []string
 	SessionId string
-
-	realobject IRequestHandler
-}
-
-// return the handler
-func (r *RequestHandler) getHandler() IRequestHandler {
-	return r
 }
 
 // method that set request and response object
@@ -90,67 +81,7 @@ func (this *RequestHandler) Render(tpl string, context interface{}) {
 
 }
 
-// generate a session uuid
-func (this *RequestHandler) genSessionID() {
 
-	f, _ := os.Open("/dev/urandom")
-	b := make([]byte, 16)
-	f.Read(b)
-	f.Close()
-	uuid := fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-
-	this.SessionId = uuid
-
-}
-
-func (this *RequestHandler) CheckSessid() {
-	if id, err := this.Request.Cookie(GetConfig().SessID); err == nil {
-		this.SessionId = id.Value
-	} else {
-		this.genSessionID()
-	}
-
-	c := http.Cookie{
-		Name:  GetConfig().SessID,
-		Value: this.SessionId,
-		Path:  "/",
-	}
-
-	http.SetCookie(this.Response, &c)
-}
-
-// get sessions
-func (this *RequestHandler) GetSession(name string) interface{} {
-	this.CheckSessid()
-	if sessions == nil {
-		sessions = make(map[string]map[string]interface{})
-	}
-
-	if s := sessions[this.SessionId]; s != nil {
-		if r := s[name]; r != nil {
-			return r
-		}
-	}
-
-	return nil
-}
-
-func (this *RequestHandler) SetSession(name string, val interface{}) {
-
-	this.CheckSessid()
-
-	if sessions == nil {
-		sessions = make(map[string]map[string]interface{})
-	}
-
-	s := sessions[this.SessionId]
-	if s == nil {
-		sessions[this.SessionId] = make(map[string]interface{})
-		s = sessions[this.SessionId]
-	}
-
-	s[name] = val
-}
 
 // Redirect to given url
 func (this *RequestHandler) Redirect(url string) {
