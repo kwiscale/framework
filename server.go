@@ -41,6 +41,14 @@ var config configStruct
 
 
 // GetConfig returns a pointer to the server configuration
+// if no configuration, returns this config:
+//		configStruct {
+//			Statics:   "./statics",
+//			Templates: "./templates",
+//			SessID:    "SESSID",
+//			Lang:      "en_US",
+//          SessionTTL: time.Second * 10  * 30 ,
+//      }
 func GetConfig() *configStruct {
 	if config.Statics == "" {
 		config = configStruct{
@@ -48,7 +56,7 @@ func GetConfig() *configStruct {
 			Templates: "./templates",
 			SessID:    "SESSID",
 			Lang:      "en_US",
-            SessionTTL: time.Second * 10  ,
+            SessionTTL: time.Second * 10  * 30 ,
 		}
 		/*
 		   log.Println("config gettext")
