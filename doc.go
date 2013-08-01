@@ -16,11 +16,19 @@ Example:
         kwiscale.RequestHandler `route:"/foo"`
     }
 
+    // You MUST give a constructor that returns IRequestHandler
+    func (t* MyHandler) New() kwiscale.IRequestHandler {
+        return new(MyHandler)
+    }
+
     // reply to GET on /foo route
     func (h *MyHandler) Get () {
         h.Write("Hello !")
     }
 
+
+Note that New() method is required, we use it as factory to get always a new instance of handler to not interfer with other connections.
+This is a fix from previous version of kwiscale
 
 Now, in your main file:
 

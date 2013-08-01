@@ -5,39 +5,13 @@ import (
 	"html/template"
 	"net/http"
 	"os"
-	"reflect"
 	"regexp"
 	"strings"
 )
 
-// thanks Russ Cox - https://groups.google.com/forum/#!topic/golang-nuts/OEdSDgEC7js
-// eq reports whether the first argument is equal to
-// any of the remaining arguments.
-func eq(args ...interface{}) bool {
-	if len(args) == 0 {
-		return false
-	}
-	x := args[0]
-	switch x := x.(type) {
-	case string, int, int64, byte, float32, float64:
-		for _, y := range args[1:] {
-			if x == y {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, y := range args[1:] {
-		if reflect.DeepEqual(x, y) {
-			return true
-		}
-	}
-	return false
-}
-
 // request handler represents an handler
 type IRequestHandler interface {
+    New() IRequestHandler
 	Get()
 	Post()
 	Head()
@@ -48,6 +22,7 @@ type IRequestHandler interface {
 	SetSession(name string, value interface{})
 
 	setParams(w http.ResponseWriter, r *http.Request, u []string)
+    getHandler() IRequestHandler
 }
 
 // RequestHandler should be "override" by your handlers. Then your handlers can 
@@ -67,6 +42,13 @@ type RequestHandler struct {
 	Request   *http.Request
 	UrlParams []string
 	SessionId string
+
+    realobject IRequestHandler
+}
+
+// return the handler
+func (r *RequestHandler) getHandler() IRequestHandler {
+    return r
 }
 
 // method that set request and response object
@@ -88,6 +70,7 @@ func (this *RequestHandler) Render(tpl string, context interface{}) {
 
 	fm := template.FuncMap{
 		"title": strings.Title,
+        "_" : t_i18n,
 	}
 
 	re := regexp.MustCompile(`\{\{\s*override\s+"(.*)"\s*\}\}`)
@@ -121,14 +104,14 @@ func (this *RequestHandler) genSessionID() {
 }
 
 func (this *RequestHandler) CheckSessid() {
-	if id, err := this.Request.Cookie("SESSID"); err == nil {
+	if id, err := this.Request.Cookie(GetConfig().SessID); err == nil {
 		this.SessionId = id.Value
 	} else {
 		this.genSessionID()
 	}
 
 	c := http.Cookie{
-		Name:  "SESSID",
+		Name:  GetConfig().SessID,
 		Value: this.SessionId,
 		Path:  "/",
 	}
@@ -178,3 +161,4 @@ func (this *RequestHandler) Redirect(url string) {
 func (this *RequestHandler) EmptySession() {
 	delete(sessions, this.SessionId)
 }
+

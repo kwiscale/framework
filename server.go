@@ -1,11 +1,13 @@
 package kwiscale
 
 import (
-	"fmt"
-	"log"
+	//"fmt"
+	//"log"
 	"net/http"
 	"reflect"
 	"regexp"
+    //"github.com/gosexy/gettext"
+    "strings"
 )
 
 type Config struct {
@@ -17,11 +19,15 @@ type Config struct {
 
     // Session cookie name 
     SessID  string
+
+
+    // Default language
+    Lang string
 }
 
 type RouteMap struct {
 	Route   *regexp.Regexp
-	Handler IRequestHandler
+	Handler func () IRequestHandler
 }
 
 // handlers stack
@@ -38,9 +44,18 @@ func GetConfig() *Config {
             Statics     : "./statics",
             Templates   : "./templates",
             SessID      : "SESSID",
+            Lang        : "en_US",
         }
+        /*
+        log.Println("config gettext")
+        log.Println(gettext.LC_ALL)
 
+        gettext.SetLocale(gettext.LC_ALL, "")
+        gettext.BindTextdomain("messages", "./locales")
+        gettext.Textdomain("messages")
+        */
     }
+
     return &config
 }
 
@@ -49,9 +64,9 @@ func AddHandler(requests...  IRequestHandler) {
     for _, r := range requests {
         field, _ := reflect.TypeOf(r).Elem().FieldByName("RequestHandler")
         route := field.Tag.Get("route")
-        log.Printf("Append route: %s", route)
+        //log.Printf("Append route: %s", route)
         reg := regexp.MustCompile(route)
-        routemap := RouteMap{reg, r}
+        routemap := RouteMap{reg, r.New}
         globalhandlers = append(globalhandlers, routemap)
     }
 }
@@ -69,47 +84,75 @@ func Serve(address string) {
 // dispatch request to correct handler
 func dispatch(w http.ResponseWriter, r *http.Request) {
 
-	defer func() {
+/*	defer func() {
 		if err := recover(); err != nil {
 			log.Println("ERROR", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "%v", err)
 		}
 	}()
-
+*/
 	r.ParseForm()
 	rcall := r.URL.Path
 
 	for _, route := range globalhandlers {
 		if res := route.Route.FindStringSubmatch(rcall); len(res) > 0 {
-
-			handler := route.Handler
-			//handler := _handler
-
-			if len(res) > 1 {
-				// params captured
-				handler.setParams(w, r, res[1:])
-			} else {
-				handler.setParams(w, r, nil)
-			}
-
-			switch r.Method {
-			case "GET":
-				handler.Get()
-			case "POST":
-				handler.Post()
-			case "DELETE":
-				handler.Delete()
-			case "HEAD":
-				handler.Head()
-			case "PUT":
-				handler.Put()
-			default:
-				panic("Method not found: " + r.Method)
-			}
-			return
-		}
+            callMethod(res, route, w, r)
+            //TODO: Why ? Tests tells it's ok, but real handlers seems to not have responses
+            //go callMethod(res, route, w, r)
+            return
+        }
 	}
 	w.WriteHeader(http.StatusNotFound)
 
 }
+
+// callMethod will find correct Method to call from handler
+// and append params needed. It check lang, session, and so on.
+// If no method are defined to respond to Method, callMethod panics
+func callMethod(res []string, route RouteMap, w http.ResponseWriter, r *http.Request){
+
+    // call constructor
+    handler := route.Handler()
+
+    // we've got some paramters
+    if len(res) > 1 {
+        // params captured
+        handler.setParams(w, r, res[1:])
+    } else {
+        handler.setParams(w, r, nil)
+    }
+
+    //gettext.BindTextdomain("messages", "./locales/" + lang)
+    _ = getLang(r, handler.GetSession("LANG"))
+
+    switch r.Method {
+    case "GET":
+        handler.Get()
+    case "POST":
+        handler.Post()
+    case "DELETE":
+        handler.Delete()
+    case "HEAD":
+        handler.Head()
+    case "PUT":
+        handler.Put()
+    default:
+        panic("Method not found: " + r.Method)
+    }
+}
+
+func getLang(r *http.Request, forced interface{}) string {
+    if forced != nil {
+        return forced.(string)
+    }
+
+    lang := r.Header["Accept-Language"]
+    if len(lang) > 0 {
+        language := GetBestMatchLang(lang[0])
+        return strings.Replace(language, "-", "_", -1)
+    }
+
+    return GetConfig().Lang
+}
+
