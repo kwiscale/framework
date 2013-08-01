@@ -11,7 +11,7 @@ import (
 
 // request handler represents an handler
 type IRequestHandler interface {
-    New() IRequestHandler
+	New() IRequestHandler
 	Get()
 	Post()
 	Head()
@@ -22,17 +22,17 @@ type IRequestHandler interface {
 	SetSession(name string, value interface{})
 
 	setParams(w http.ResponseWriter, r *http.Request, u []string)
-    getHandler() IRequestHandler
+	getHandler() IRequestHandler
 }
 
-// RequestHandler should be "override" by your handlers. Then your handlers can 
+// RequestHandler should be "override" by your handlers. Then your handlers can
 // redefine Get(), Put(),... methods (see: IRequestHandler)
 //
 // Example:
 //      type IndexHander struct {
 //          kwiscale.RequestHandler `route:"/index"`
 //      }
-//      
+//
 //      func (i *IndexHandler) Get(){
 //          //...
 //      }
@@ -43,12 +43,12 @@ type RequestHandler struct {
 	UrlParams []string
 	SessionId string
 
-    realobject IRequestHandler
+	realobject IRequestHandler
 }
 
 // return the handler
 func (r *RequestHandler) getHandler() IRequestHandler {
-    return r
+	return r
 }
 
 // method that set request and response object
@@ -70,7 +70,7 @@ func (this *RequestHandler) Render(tpl string, context interface{}) {
 
 	fm := template.FuncMap{
 		"title": strings.Title,
-        "_" : t_i18n,
+		"_":     t_i18n,
 	}
 
 	re := regexp.MustCompile(`\{\{\s*override\s+"(.*)"\s*\}\}`)
@@ -161,4 +161,3 @@ func (this *RequestHandler) Redirect(url string) {
 func (this *RequestHandler) EmptySession() {
 	delete(sessions, this.SessionId)
 }
-

@@ -44,9 +44,9 @@ Now, in your main file:
     }
 
 
-Launching "go run main.go" starts server, you can visit http://127.0.0.1:8080/foo 
+Launching "go run main.go" starts server, you can visit http://127.0.0.1:8080/foo
 
-Kwiscale appends some features that are needed to easilly develop web application or REST API. 
+Kwiscale appends some features that are needed to easilly develop web application or REST API.
 
 Template:
 
@@ -84,7 +84,7 @@ we override "main.html". The path is always use from "templates" directory.
 There is a very beta system that creates forms from a basic struct.
 
 Example:
-    
+
     type AuthForm struct {
         Name        string `form:"text,Give a name,required"`
         Password    string `form:"password,Type your password,required"`

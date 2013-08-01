@@ -10,9 +10,9 @@ package kwiscale
 
 import (
 	"fmt"
+	"html/template"
 	"reflect"
 	"strings"
-    "html/template"
 )
 
 var TPLTEXTINPUT string = `
@@ -42,58 +42,52 @@ var TPLSELECT string = `
 var TPLOPTION string = `
     <option value="%s">%s</option>`
 
-
-
 type Field struct {
-    Tag string
-    Type string
-    Attributes string
-    Value string
-    Label string
-    Name string
+	Tag        string
+	Type       string
+	Attributes string
+	Value      string
+	Label      string
+	Name       string
 }
 
 func (f Field) String() string {
 
-    var ret string
+	var ret string
 
-    switch (f.Type) {
-		case "text":
-			ret = fmt.Sprintf(TPLTEXTINPUT, f.Label, f.Name, f.Value, f.Attributes)
-		case "password":
-			ret = fmt.Sprintf(TPLPWDINPUT, f.Label, f.Name, f.Value, f.Attributes)
-		case "textarea":
-			ret = fmt.Sprintf(TPLTEXTAREA, f.Label, f.Name, f.Attributes, f.Value)
-		case "select":
-			ret = fmt.Sprintf(TPLSELECT, f.Label, f.Name, f.Attributes, f.Value)
-		default:
-			panic("error " + f.Type + " not known")
-    }
+	switch f.Type {
+	case "text":
+		ret = fmt.Sprintf(TPLTEXTINPUT, f.Label, f.Name, f.Value, f.Attributes)
+	case "password":
+		ret = fmt.Sprintf(TPLPWDINPUT, f.Label, f.Name, f.Value, f.Attributes)
+	case "textarea":
+		ret = fmt.Sprintf(TPLTEXTAREA, f.Label, f.Name, f.Attributes, f.Value)
+	case "select":
+		ret = fmt.Sprintf(TPLSELECT, f.Label, f.Name, f.Attributes, f.Value)
+	default:
+		panic("error " + f.Type + " not known")
+	}
 
-    return string(template.HTML(ret))
+	return string(template.HTML(ret))
 }
 
 func (f Field) Html() template.HTML {
-    return template.HTML(f.String())
+	return template.HTML(f.String())
 }
-
 
 type Form struct {
-    Fields []Field
+	Fields []Field
 }
 
-func (f *Form) Append (field Field) {
-    f.Fields = append(f.Fields, field)
+func (f *Form) Append(field Field) {
+	f.Fields = append(f.Fields, field)
 }
-
-
-
 
 func renderForm(s interface{}) *Form {
 
 	v := reflect.TypeOf(s)
 	value := reflect.ValueOf(s)
-    form := new(Form)
+	form := new(Form)
 	for i := 0; i < v.NumField(); i++ {
 
 		f := v.Field(i)
@@ -132,20 +126,20 @@ func renderForm(s interface{}) *Form {
 			}
 		}
 
-        field := Field{
-            Label: label,
-            Value: val,
-            Attributes: req,
-            Name: f.Name,
-            Type: parts[0],
-        }
+		field := Field{
+			Label:      label,
+			Value:      val,
+			Attributes: req,
+			Name:       f.Name,
+			Type:       parts[0],
+		}
 
-        form.Append(field)
+		form.Append(field)
 
 	}
 	return form
 }
 
 func CreateForm(T interface{}) *Form {
-	 return renderForm(T)
+	return renderForm(T)
 }

@@ -14,8 +14,8 @@ func (t *TestHandler) Get() {
 	t.Write("Response ok")
 }
 
-func (t *TestHandler) New () IRequestHandler {
-    return new(TestHandler)
+func (t *TestHandler) New() IRequestHandler {
+	return new(TestHandler)
 }
 
 func Init() {

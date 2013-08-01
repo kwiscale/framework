@@ -6,28 +6,27 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
-    //"github.com/gosexy/gettext"
-    "strings"
+	//"github.com/gosexy/gettext"
+	"strings"
 )
 
 type Config struct {
-    // static dir
-    Statics string
+	// static dir
+	Statics string
 
-    // template dir
-    Templates string
+	// template dir
+	Templates string
 
-    // Session cookie name 
-    SessID  string
+	// Session cookie name
+	SessID string
 
-
-    // Default language
-    Lang string
+	// Default language
+	Lang string
 }
 
 type RouteMap struct {
 	Route   *regexp.Regexp
-	Handler func () IRequestHandler
+	Handler func() IRequestHandler
 }
 
 // handlers stack
@@ -39,36 +38,36 @@ var sessions map[string]map[string]interface{}
 
 // GetConfig returns a pointer to the server configuration
 func GetConfig() *Config {
-    if config.Statics == "" {
-        config = Config{
-            Statics     : "./statics",
-            Templates   : "./templates",
-            SessID      : "SESSID",
-            Lang        : "en_US",
-        }
-        /*
-        log.Println("config gettext")
-        log.Println(gettext.LC_ALL)
+	if config.Statics == "" {
+		config = Config{
+			Statics:   "./statics",
+			Templates: "./templates",
+			SessID:    "SESSID",
+			Lang:      "en_US",
+		}
+		/*
+		   log.Println("config gettext")
+		   log.Println(gettext.LC_ALL)
 
-        gettext.SetLocale(gettext.LC_ALL, "")
-        gettext.BindTextdomain("messages", "./locales")
-        gettext.Textdomain("messages")
-        */
-    }
+		   gettext.SetLocale(gettext.LC_ALL, "")
+		   gettext.BindTextdomain("messages", "./locales")
+		   gettext.Textdomain("messages")
+		*/
+	}
 
-    return &config
+	return &config
 }
 
-// AddHandler adds handlers to the handlers stack. 
-func AddHandler(requests...  IRequestHandler) {
-    for _, r := range requests {
-        field, _ := reflect.TypeOf(r).Elem().FieldByName("RequestHandler")
-        route := field.Tag.Get("route")
-        //log.Printf("Append route: %s", route)
-        reg := regexp.MustCompile(route)
-        routemap := RouteMap{reg, r.New}
-        globalhandlers = append(globalhandlers, routemap)
-    }
+// AddHandler adds handlers to the handlers stack.
+func AddHandler(requests ...IRequestHandler) {
+	for _, r := range requests {
+		field, _ := reflect.TypeOf(r).Elem().FieldByName("RequestHandler")
+		route := field.Tag.Get("route")
+		//log.Printf("Append route: %s", route)
+		reg := regexp.MustCompile(route)
+		routemap := RouteMap{reg, r.New}
+		globalhandlers = append(globalhandlers, routemap)
+	}
 }
 
 // Serve start to serve on given address.
@@ -84,24 +83,24 @@ func Serve(address string) {
 // dispatch request to correct handler
 func dispatch(w http.ResponseWriter, r *http.Request) {
 
-/*	defer func() {
-		if err := recover(); err != nil {
-			log.Println("ERROR", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "%v", err)
-		}
-	}()
-*/
+	/*	defer func() {
+			if err := recover(); err != nil {
+				log.Println("ERROR", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "%v", err)
+			}
+		}()
+	*/
 	r.ParseForm()
 	rcall := r.URL.Path
 
 	for _, route := range globalhandlers {
 		if res := route.Route.FindStringSubmatch(rcall); len(res) > 0 {
-            callMethod(res, route, w, r)
-            //TODO: Why ? Tests tells it's ok, but real handlers seems to not have responses
-            //go callMethod(res, route, w, r)
-            return
-        }
+			callMethod(res, route, w, r)
+			//TODO: Why ? Tests tells it's ok, but real handlers seems to not have responses
+			//go callMethod(res, route, w, r)
+			return
+		}
 	}
 	w.WriteHeader(http.StatusNotFound)
 
@@ -110,49 +109,48 @@ func dispatch(w http.ResponseWriter, r *http.Request) {
 // callMethod will find correct Method to call from handler
 // and append params needed. It check lang, session, and so on.
 // If no method are defined to respond to Method, callMethod panics
-func callMethod(res []string, route RouteMap, w http.ResponseWriter, r *http.Request){
+func callMethod(res []string, route RouteMap, w http.ResponseWriter, r *http.Request) {
 
-    // call constructor
-    handler := route.Handler()
+	// call constructor
+	handler := route.Handler()
 
-    // we've got some paramters
-    if len(res) > 1 {
-        // params captured
-        handler.setParams(w, r, res[1:])
-    } else {
-        handler.setParams(w, r, nil)
-    }
+	// we've got some paramters
+	if len(res) > 1 {
+		// params captured
+		handler.setParams(w, r, res[1:])
+	} else {
+		handler.setParams(w, r, nil)
+	}
 
-    //gettext.BindTextdomain("messages", "./locales/" + lang)
-    _ = getLang(r, handler.GetSession("LANG"))
+	//gettext.BindTextdomain("messages", "./locales/" + lang)
+	_ = getLang(r, handler.GetSession("LANG"))
 
-    switch r.Method {
-    case "GET":
-        handler.Get()
-    case "POST":
-        handler.Post()
-    case "DELETE":
-        handler.Delete()
-    case "HEAD":
-        handler.Head()
-    case "PUT":
-        handler.Put()
-    default:
-        panic("Method not found: " + r.Method)
-    }
+	switch r.Method {
+	case "GET":
+		handler.Get()
+	case "POST":
+		handler.Post()
+	case "DELETE":
+		handler.Delete()
+	case "HEAD":
+		handler.Head()
+	case "PUT":
+		handler.Put()
+	default:
+		panic("Method not found: " + r.Method)
+	}
 }
 
 func getLang(r *http.Request, forced interface{}) string {
-    if forced != nil {
-        return forced.(string)
-    }
+	if forced != nil {
+		return forced.(string)
+	}
 
-    lang := r.Header["Accept-Language"]
-    if len(lang) > 0 {
-        language := GetBestMatchLang(lang[0])
-        return strings.Replace(language, "-", "_", -1)
-    }
+	lang := r.Header["Accept-Language"]
+	if len(lang) > 0 {
+		language := GetBestMatchLang(lang[0])
+		return strings.Replace(language, "-", "_", -1)
+	}
 
-    return GetConfig().Lang
+	return GetConfig().Lang
 }
-
