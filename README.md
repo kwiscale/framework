@@ -38,6 +38,12 @@ type IndexHandler struct {
     kwiscale.RequestHandler `route:"/home"`
 }
 
+
+// Factory, this is *mandatory* !
+func (i *IndexHandler) New() kwiscale.IRequestHandler {
+    return new(IndexHandler)
+}
+
 func (this *IndexHandler) Get () {
     this.Write("Hello !")
 }
