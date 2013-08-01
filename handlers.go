@@ -7,18 +7,15 @@ import (
 	"strings"
 )
 
-
 // IRequestHandlerCommon defines method that are already defined for RequestHandler
 // You have not to override those methods
 type IRequestHandlerCommon interface {
-
 	Render(template string, context interface{})
 	GetSession(name string) interface{}
 	SetSession(name string, value interface{})
 
 	setParams(w http.ResponseWriter, r *http.Request, u []string)
 	getHandler() IRequestHandler
-
 }
 
 // IRequestHandler defines what you can override to handle requests. Note that
@@ -30,7 +27,7 @@ type IRequestHandlerCommon interface {
 //
 // This method is used as factory when dispatching requests
 type IRequestHandler interface {
-    IRequestHandlerCommon
+	IRequestHandlerCommon
 	New() IRequestHandler
 	Get()
 	Post()
