@@ -7,20 +7,36 @@ import (
 	"strings"
 )
 
-// request handler represents an handler
-type IRequestHandler interface {
-	New() IRequestHandler
-	Get()
-	Post()
-	Head()
-	Delete()
-	Put()
+
+// IRequestHandlerCommon defines method that are already defined for RequestHandler
+// You have not to override those methods
+type IRequestHandlerCommon interface {
+
 	Render(template string, context interface{})
 	GetSession(name string) interface{}
 	SetSession(name string, value interface{})
 
 	setParams(w http.ResponseWriter, r *http.Request, u []string)
 	getHandler() IRequestHandler
+
+}
+
+// IRequestHandler defines what you can override to handle requests. Note that
+// New() is required and should be declared in your handler. The common method is :
+//
+//      func (h *YourHandler) New() IRequestHandler {
+//          return new(YourHandler)
+//      }
+//
+// This method is used as factory when dispatching requests
+type IRequestHandler interface {
+    IRequestHandlerCommon
+	New() IRequestHandler
+	Get()
+	Post()
+	Head()
+	Delete()
+	Put()
 }
 
 // RequestHandler should be "override" by your handlers. Then your handlers can
