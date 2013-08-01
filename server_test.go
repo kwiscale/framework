@@ -19,7 +19,7 @@ func (t *TestHandler) New() IRequestHandler {
 }
 
 func Init() {
-    sessions = make(map[string]map[string]interface{})
+	sessions = make(map[string]map[string]interface{})
 
 	h := TestHandler{}
 	AddHandler(&h)

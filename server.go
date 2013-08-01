@@ -8,7 +8,7 @@ import (
 	"regexp"
 	//"github.com/gosexy/gettext"
 	"strings"
-    "time"
+	"time"
 )
 
 // Configuration structure
@@ -22,8 +22,8 @@ type configStruct struct {
 	// Session cookie name
 	SessID string
 
-    // Session Max Age (in seconds)
-    SessionTTL time.Duration
+	// Session Max Age (in seconds)
+	SessionTTL time.Duration
 
 	// Default language
 	Lang string
@@ -38,8 +38,6 @@ type RouteMap struct {
 var globalhandlers []RouteMap
 var config configStruct
 
-
-
 // GetConfig returns a pointer to the server configuration
 // if no configuration, returns this config:
 //		configStruct {
@@ -52,11 +50,11 @@ var config configStruct
 func GetConfig() *configStruct {
 	if config.Statics == "" {
 		config = configStruct{
-			Statics:   "./statics",
-			Templates: "./templates",
-			SessID:    "SESSID",
-			Lang:      "en_US",
-            SessionTTL: time.Second * 10  * 30 ,
+			Statics:    "./statics",
+			Templates:  "./templates",
+			SessID:     "SESSID",
+			Lang:       "en_US",
+			SessionTTL: time.Second * 10 * 30,
 		}
 		/*
 		   log.Println("config gettext")
@@ -88,9 +86,9 @@ func AddHandler(requests ...IRequestHandler) {
 // Example:
 //      kwiscale.Server(":8080")
 func Serve(address string) {
-    sessions = make(map[string]map[string]interface{})
-    log.Println(sessions)
-    go checkSessionsTTL()
+	sessions = make(map[string]map[string]interface{})
+	log.Println(sessions)
+	go checkSessionsTTL()
 	http.Handle("/statics/", http.StripPrefix("/statics", http.FileServer(http.Dir("./statics"))))
 	http.HandleFunc("/", dispatch)
 	http.ListenAndServe(address, nil)

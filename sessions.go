@@ -1,26 +1,27 @@
 package kwiscale
+
 import (
-    "log"
-    "time"
-    "os"
-    "fmt"
-    "net/http"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
 )
 
 // sessions handler
 var sessions map[string]map[string]interface{}
 
 // Runs in parallel, check Session TTL
-func checkSessionsTTL (){
-    for id, session := range sessions {
-        duration := time.Since(session["__last_access"].(time.Time))
-        if duration > GetConfig().SessionTTL {
-            log.Printf("Kill session %s after %v", id, duration)
-            delete(sessions, id)
-        }
-    }
-    time.Sleep(time.Second *1)
-    checkSessionsTTL()
+func checkSessionsTTL() {
+	for id, session := range sessions {
+		duration := time.Since(session["__last_access"].(time.Time))
+		if duration > GetConfig().SessionTTL {
+			log.Printf("Kill session %s after %v", id, duration)
+			delete(sessions, id)
+		}
+	}
+	time.Sleep(time.Second * 1)
+	checkSessionsTTL()
 }
 
 // generate a session uuid
@@ -51,13 +52,13 @@ func (this *RequestHandler) checkSessid() {
 		Path:  "/",
 	}
 
-    s := sessions[this.SessionId]
+	s := sessions[this.SessionId]
 	if s == nil {
 		sessions[this.SessionId] = make(map[string]interface{})
 		s = sessions[this.SessionId]
 	}
 
-    resetSessionTTL(this.SessionId)
+	resetSessionTTL(this.SessionId)
 	http.SetCookie(this.Response, &c)
 }
 
@@ -75,7 +76,6 @@ func (this *RequestHandler) GetSession(name string) interface{} {
 	return nil
 }
 
-
 // SetSession set val to name (key) for the current handled connection
 func (this *RequestHandler) SetSession(name string, val interface{}) {
 
@@ -90,7 +90,7 @@ func (this *RequestHandler) SetSession(name string, val interface{}) {
 
 // resetSessionTTL set current date to __last_access session key
 // see: checkSessionsTTL function
-func resetSessionTTL (id string) {
-    sess := sessions[id]
-    sess["__last_access"] = time.Now()
+func resetSessionTTL(id string) {
+	sess := sessions[id]
+	sess["__last_access"] = time.Now()
 }

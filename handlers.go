@@ -81,8 +81,6 @@ func (this *RequestHandler) Render(tpl string, context interface{}) {
 
 }
 
-
-
 // Redirect to given url
 func (this *RequestHandler) Redirect(url string) {
 	http.Redirect(this.Response, this.Request, url, http.StatusSeeOther)
