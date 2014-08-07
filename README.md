@@ -5,7 +5,6 @@ Web Middleware for Golang
 
 At this time, Kwiscale is at the very begining of developpement. But you can test and give'em some pull-request to improve it.
 
-
 Check documentation: http://godoc.org/github.com/metal3d/kwiscale
 
 How to use
@@ -34,18 +33,14 @@ import "github.com/metal3d/kwiscale"
 // this is the Index Handler that
 // is composed by a RequestHandler
 type IndexHandler struct {
-    // note this, we now use Tag to declare route Inside the Handler
-    kwiscale.RequestHandler `route:"/home"`
+
+    // compose your handler with kwiscale.Handler
+    kwiscale.Handler
 }
 
-
-// Factory, this is *mandatory* !
-func (i *IndexHandler) New() kwiscale.IRequestHandler {
-    return new(IndexHandler)
-}
-
-func (this *IndexHandler) Get () {
-    this.Write("Hello !")
+// Will respond to GET request. "params" are url params (not GET and POST data)
+func (this *IndexHandler) Get (params map[string]string) {
+    this.Write("Hello !" + params["username"])
 }
 ```
 
@@ -61,38 +56,72 @@ import (
 )
 
 func main() {
-    h := handlers.IndexHandler{}
-    kwiscale.AddHandler(&h)
+    // Get a server
+    server := kwiscale.NewServer()
 
-    kwiscale.Serve(":8081") //listen :8081
+    // Link route /home/XXX to IndexHander factory
+    // "username" will be passed inside the map params to Get method.
+    server.Route("/home/{username:.*}", func IHandler {return &handlers.IndexHandler})
+    
+    // Start to listen on 0.0.0.0:8081
+    server.Listen(":8081")
 }
 ```
 
+Note: Route() prototype is:
+
+    kwiscale.Route(url string, factory kwiscale.Factory)
+
+kwiscale.Factory type is "func IHandler {}". The factory is only a function that returns pointer on your Handler. In above example:
+
+```go
+// explain factory system
+var factory kwiscale.Factory 
+factory = func IHandler {
+	return new(IndexHandler) // or return &IndexHandler{}
+}
+
+// Then:
+kwiscale.Route("/home/{username:.*}", factory)
+```
+
+We use factory to allows new handler at time. Kwiscale use a factory stack that spawn some handler and keep it in a channel.
 
 Then run:
 
     go run main.go
 
+Or build your project:
+    
+    go build main.go
+    ./main
 
-Visit http://127.0.0.1:8081/home and you should see "Hello"
+
+Visit http://127.0.0.1:8081/home/FOO and you should see "Hello FOO"
 
 
-What gives Kwiscale ?
-=====================
+The Kwiscale way ?
+==================
 
 Kwiscale let you declare Handler methods with the HTTP method. This allows you to declare:
 
-* Get()
-* Post()
-* Head()
-* Delete()
-* Put()
+* Get(map[string]string)
+* Post(map[string]string)
+* Head(map[string]string)
+* Delete(map[string]string)
+* Put(map[string]string)
 
-Routes are regexp and captured elements are stocked in handler.UrlParams that is a []string.
 
-The handler.Render method takes template path and context to implement. But it adds a nice way to "overide" templates.
+The map[string]string parameter represents what is given to the URL. It uses Gorilla "mux.Route" to implement that route syntax. Note that parameters are not GET (and not POST) values, but are parts of the path. Get/Post values can be read from handler.Request object (TODO: documentation).
 
-Let's take an example. 
+Templates
+=========
+
+Right now, basic templates (that are not so basics...) from golang sdk is the default template engine. But you can use Pango2 or other template engine. 
+
+Kwiscale adds "override" system to import other templates. That way, you can call a subtemplate.
+
+See the following example.
 
 Append templates directory:
     
@@ -123,14 +152,22 @@ Create templates/home/welcome.html:
         This the welcome message {{ .msg }}
     {{ end }}
 
+This template override "main.html". 
+
+
 In handlers/index.go:
 
 ```go
-func (this *IndexHandler) Get() {
-    this.Render("home/welcome.html", map[string]string{
+func (h *IndexHandler) Get() {
+    h.Response.Render("home/welcome.html", kwiscale.ContextParams{
         "title" : "Welcome !!!",
         "msg"   : "Hello you",
     })
 }
 ```
+
+To use other template, you should create struct that interface kwiscale.ITemplateEngine. You only have to implement one method: Render(h kwiscale.Handler, templatename string, ctx kwiscale.ContextParams). This method should write template with h.Write(...).
+
+Note that ContextParams is a simple mam[interface{}]interface{}.
+
 
