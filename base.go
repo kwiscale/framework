@@ -3,10 +3,11 @@ package kwiscale
 import "net/http"
 
 // Enable debug logs.
-var DEBUG = false
+var debug = false
 
+// Change debug mode
 func SetDebug(mode bool) {
-	DEBUG = mode
+	debug = mode
 }
 
 // Register canals that handle of RequestHandlers.

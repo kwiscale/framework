@@ -39,7 +39,7 @@ func (h *OtherHandler) Get() {
 }
 
 func main() {
-	kwiscale.DEBUG = true
+	kwiscale.SetDebug(true)
 	app := kwiscale.NewApp(kwiscale.Config{
 		TemplateDir: "template",
 		Port:        ":8000",

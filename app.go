@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"reflect"
-	"runtime"
 
 	"github.com/gorilla/mux"
 )
@@ -17,26 +16,24 @@ type Config struct {
 
 // App handles router and handlers.
 type App struct {
-	NbHandlerCache int
-
-	// The router that will be used
-	Router *mux.Router
-
-	// List of handler "names" mapped to route (will be create by a factory)
-	Handlers map[*mux.Route]string
 
 	// configuration
 	Config Config
 
 	// Template engine instance.
 	templateEngine ITemplate
+
+	// The router that will be used
+	router *mux.Router
+
+	// List of handler "names" mapped to route (will be create by a factory)
+	handlers map[*mux.Route]string
+
+	// number of handler to keep in a channel
+	nbHandlerCache int
 }
 
-// setTempate set template engine instance to the current App
-func (a *App) setTemplate(t ITemplate) {
-	a.templateEngine = t
-}
-
+// Initialize config default values if some are not defined
 func initConfig(config *Config) {
 	if config.Port == "" {
 		config.Port = ":8000"
@@ -45,7 +42,6 @@ func initConfig(config *Config) {
 	if config.NbHandlerCache == 0 {
 		config.NbHandlerCache = 5
 	}
-
 }
 
 // NewApp Create new *App - App constructor.
@@ -53,12 +49,14 @@ func NewApp(config Config) *App {
 	initConfig(&config)
 
 	a := new(App)
-	a.NbHandlerCache = config.NbHandlerCache
-	a.Router = mux.NewRouter()
-	a.Handlers = make(map[*mux.Route]string)
-	SetTemplateDir(config.TemplateDir)
+	a.nbHandlerCache = config.NbHandlerCache
+	a.router = mux.NewRouter()
+	a.handlers = make(map[*mux.Route]string)
+
 	// use default template engine
-	a.setTemplate(new(Template))
+	t := new(Template)
+	t.SetTemplateDir(config.TemplateDir)
+	a.templateEngine = t
 
 	// keep config
 	a.Config = config
@@ -76,11 +74,11 @@ func (a *App) ListenAndServe() {
 func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var req interface{}
-	for route, handler := range app.Handlers {
+	for route, handler := range app.handlers {
 		var match mux.RouteMatch
 		if route.Match(r, &match) {
 			// construct handler from its name
-			if DEBUG {
+			if debug {
 				log.Printf("Route matches %#v\n", route)
 				log.Println("Handler to fetch", handler)
 			}
@@ -100,7 +98,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req, ok := req.(IRequestHandler); ok {
-		if DEBUG {
+		if debug {
 			log.Println("Respond to IRequestHandler", r.Method, req)
 		}
 		if req == nil {
@@ -129,27 +127,28 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusInternalServerError)
 	log.Println("The request cannot be served, type of handler is not correct")
-	if DEBUG {
-		log.Printf("%+v\n", req)
+	if debug {
+		log.Printf("RequestWriter: %+v\n", w)
+		log.Printf("Reponse: %+v", r)
+		log.Printf("KwiscaleHandler: %+v\n", req)
 	}
-
 }
 
 // AddRoute appends route mapped to handler. Note that rh parameter should
 // implement IRequestHandler (generally a struct composing RequestHandler)
 func (app *App) AddRoute(route string, rh interface{}) {
-	r := app.Router.NewRoute()
+	r := app.router.NewRoute()
 	r.Path(route)
 	r.Name(route)
 	app.registerHandler(r, route, rh)
 }
 
-// register type
+// register type in registry.
 // handlerFactory will be able to create copies...
 func (app *App) registerHandler(route *mux.Route, name string, h interface{}) {
 	handlerType := reflect.TypeOf(h)
 	// keep in mind that "route" is an pointer
-	app.Handlers[route] = handlerType.String()
+	app.handlers[route] = handlerType.String()
 	go app.handlerFactory(handlerType)
 }
 
@@ -157,26 +156,14 @@ func (app *App) registerHandler(route *mux.Route, name string, h interface{}) {
 func (app *App) handlerFactory(h reflect.Type) {
 	// register factory channel
 	// bufferize handler creation in channels
-	c := make(chan interface{}, app.NbHandlerCache)
+	c := make(chan interface{}, app.nbHandlerCache)
 	handlerRegistry[h.String()] = c
 
-	defer func() {
-		if r := recover(); r != nil {
-			switch r := r.(type) {
-			case *runtime.TypeAssertionError:
-				log.Fatal(r)
-			default:
-				log.Fatal("WTF ???")
-			}
-		}
-	}()
-
+	// forever produce handlers
 	for {
-
-		if DEBUG {
+		if debug {
 			log.Println("Append handler in channel: ", reflect.TypeOf(h))
 		}
-		v := reflect.New(h) // should make a copy
-		c <- v.Interface()
+		c <- reflect.New(h).Interface()
 	}
 }

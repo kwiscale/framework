@@ -6,6 +6,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// IWSHander is the base template to implement to be able to use
+// Websocket
 type IWSHandler interface {
 	// Serve is the method to implement inside the project
 	Serve()
@@ -34,7 +36,7 @@ func (ws *WebSocketHandler) GetConnection() *websocket.Conn {
 
 // Serve is the method to implement to serve websocket.
 func (ws *WebSocketHandler) Serve() {
-	if DEBUG {
+	if debug {
 		log.Println("Serve method not implemented")
 	}
 }
