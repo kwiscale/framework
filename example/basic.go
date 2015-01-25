@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 
-	"github.com/metal3d/kwiscale/v3"
+	"github.com/metal3d/kwiscale"
 )
 
 type HomeHandler struct {
@@ -15,12 +14,8 @@ func (h *HomeHandler) Get() {
 	println("ok")
 }
 
-type OtherHandler struct {
-	kwiscale.RequestHandler
-}
-
 type WSHandler struct {
-	kwiscale.WSHandler
+	kwiscale.WebSocketHandler
 }
 
 func (w *WSHandler) Serve() {
@@ -34,17 +29,23 @@ func (w *WSHandler) Serve() {
 	}
 }
 
+type OtherHandler struct {
+	kwiscale.RequestHandler
+}
+
 func (h *OtherHandler) Get() {
 	fmt.Println(h.Vars)
-	println("other")
-	h.Response.Write([]byte("coucou\n"))
+	h.Render("content/user.html", h.Vars)
 }
 
 func main() {
 	kwiscale.DEBUG = true
-	app := kwiscale.NewApp()
+	app := kwiscale.NewApp(kwiscale.Config{
+		TemplateDir: "template",
+		Port:        ":8000",
+	})
+	app.AddRoute("/", HomeHandler{})
 	app.AddRoute("/ws", WSHandler{})
-	app.AddRoute("/toto", HomeHandler{})
 	app.AddRoute("/other/{userid:[0-9]+}", OtherHandler{})
-	http.ListenAndServe(":8000", app)
+	app.ListenAndServe()
 }

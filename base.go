@@ -14,12 +14,14 @@ var handlerRegistry = make(map[string]chan interface{})
 
 type IBaseHandler interface {
 	setVars(map[string]string, http.ResponseWriter, *http.Request)
+	setApp(*App)
 }
 
 type BaseHandler struct {
 	Response http.ResponseWriter
 	Request  *http.Request
 	Vars     map[string]string
+	app      *App
 }
 
 // setVars initialize vars from url
@@ -27,4 +29,8 @@ func (r *BaseHandler) setVars(v map[string]string, w http.ResponseWriter, req *h
 	r.Vars = v
 	r.Response = w
 	r.Request = req
+}
+
+func (r *BaseHandler) setApp(a *App) {
+	r.app = a
 }

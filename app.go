@@ -5,10 +5,15 @@ import (
 	"net/http"
 	"reflect"
 	"runtime"
-	"strings"
 
 	"github.com/gorilla/mux"
 )
+
+type Config struct {
+	TemplateDir    string
+	Port           string
+	NbHandlerCache int
+}
 
 // App handles router and handlers.
 type App struct {
@@ -19,16 +24,52 @@ type App struct {
 
 	// List of handler "names" mapped to route (will be create by a factory)
 	Handlers map[*mux.Route]string
+
+	// configuration
+	Config Config
+
+	// Template engine instance.
+	templateEngine ITemplate
+}
+
+// setTempate set template engine instance to the current App
+func (a *App) setTemplate(t ITemplate) {
+	a.templateEngine = t
+}
+
+func initConfig(config *Config) {
+	if config.Port == "" {
+		config.Port = ":8000"
+	}
+
+	if config.NbHandlerCache == 0 {
+		config.NbHandlerCache = 5
+	}
+
 }
 
 // NewApp Create new *App - App constructor.
-func NewApp() *App {
+func NewApp(config Config) *App {
+	initConfig(&config)
+
 	a := new(App)
-	a.NbHandlerCache = 5
+	a.NbHandlerCache = config.NbHandlerCache
 	a.Router = mux.NewRouter()
 	a.Handlers = make(map[*mux.Route]string)
+	SetTemplateDir(config.TemplateDir)
+	// use default template engine
+	a.setTemplate(new(Template))
+
+	// keep config
+	a.Config = config
 
 	return a
+}
+
+// ListenAndServe calls http.ListenAndServe method
+func (a *App) ListenAndServe() {
+	log.Println("Listening", a.Config.Port)
+	http.ListenAndServe(a.Config.Port, a)
 }
 
 // Implement http.Handler ServeHTTP method
@@ -43,8 +84,11 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				log.Printf("Route matches %#v\n", route)
 				log.Println("Handler to fetch", handler)
 			}
+
+			// wait for a built handler from registry
 			req = <-handlerRegistry[handler]
 			req.(IBaseHandler).setVars(match.Vars, w, r)
+			req.(IBaseHandler).setApp(app)
 			break
 		}
 	}
@@ -56,12 +100,15 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req, ok := req.(IRequestHandler); ok {
+		if DEBUG {
+			log.Println("Respond to IRequestHandler", r.Method, req)
+		}
 		if req == nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		switch strings.ToUpper(r.Method) {
+		switch r.Method {
 		case "GET":
 			req.Get()
 		case "PUT":
@@ -82,10 +129,14 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusInternalServerError)
 	log.Println("The request cannot be served, type of handler is not correct")
+	if DEBUG {
+		log.Printf("%+v\n", req)
+	}
 
 }
 
-// AddRoute appends route mapped to handler. Note that rh parameter should implement IRequestHandler (generally a struct composing RequestHandler)
+// AddRoute appends route mapped to handler. Note that rh parameter should
+// implement IRequestHandler (generally a struct composing RequestHandler)
 func (app *App) AddRoute(route string, rh interface{}) {
 	r := app.Router.NewRoute()
 	r.Path(route)
@@ -97,7 +148,7 @@ func (app *App) AddRoute(route string, rh interface{}) {
 // handlerFactory will be able to create copies...
 func (app *App) registerHandler(route *mux.Route, name string, h interface{}) {
 	handlerType := reflect.TypeOf(h)
-	// keep in mind that "route" is an address
+	// keep in mind that "route" is an pointer
 	app.Handlers[route] = handlerType.String()
 	go app.handlerFactory(handlerType)
 }
@@ -128,5 +179,4 @@ func (app *App) handlerFactory(h reflect.Type) {
 		v := reflect.New(h) // should make a copy
 		c <- v.Interface()
 	}
-
 }

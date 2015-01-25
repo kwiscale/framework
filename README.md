@@ -55,37 +55,38 @@ import (
     "./handlers"
 )
 
+// HomeHandler
+type HomeHandler struct {
+	kwiscale.RequestHandler
+}
+
+// Get respond to GET request
+func (h *HomeHandler) Get (){
+	h.Response.WriteString("reponse to GET home")
+}
+
+// Another handler
+type OtherHandler struct {
+	kwiscale.RequestHandler
+}
+
+func (o *OtherHandler) Get (){
+	// read url params
+	// it always return a string !
+	userid := o.Vars["userid"]
+	o.Response.WriteString(userid)
+}
+
+
 func main() {
-    // Get a server
-    server := kwiscale.NewServer()
-
-    // Link route /home/XXX to IndexHander factory
-    // "username" will be passed inside the map params to Get method.
-    server.Route("/home/{username:.*}", func IHandler {return &handlers.IndexHandler})
-    
-    // Start to listen on 0.0.0.0:8081
-    server.Listen(":8081")
+	kwiscale.DEBUG = true
+	app := kwiscale.NewApp()
+	app.AddRoute("/", HomeHandler{})
+	app.AddRoute("/user/{userid:[0-9]+}", OtherHandler{})
+	http.ListenAndServe(":8000", app)
 }
 ```
 
-Note: Route() prototype is:
-
-    kwiscale.Route(url string, factory kwiscale.Factory)
-
-kwiscale.Factory type is "func IHandler {}". The factory is only a function that returns pointer on your Handler. In above example:
-
-```go
-// explain factory system
-var factory kwiscale.Factory 
-factory = func IHandler {
-	return new(IndexHandler) // or return &IndexHandler{}
-}
-
-// Then:
-kwiscale.Route("/home/{username:.*}", factory)
-```
-
-We use factory to allows new handler at time. Kwiscale use a factory stack that spawn some handler and keep it in a channel.
 
 Then run:
 
@@ -97,7 +98,7 @@ Or build your project:
     ./main
 
 
-Visit http://127.0.0.1:8081/home/FOO and you should see "Hello FOO"
+Visit http://127.0.0.1:8000/ and you should see "Hello FOO"
 
 
 The Kwiscale way ?
@@ -105,14 +106,13 @@ The Kwiscale way ?
 
 Kwiscale let you declare Handler methods with the HTTP method. This allows you to declare:
 
-* Get(map[string]string)
-* Post(map[string]string)
-* Head(map[string]string)
-* Delete(map[string]string)
-* Put(map[string]string)
+* Get()
+* Post()
+* Head()
+* Delete()
+* Put()
+* Patch()
 
-
-The map[string]string parameter represents what is given to the URL. It uses Gorilla "mux.Route" to implement that route syntax. Note that parameters are not GET (and not POST) values, but are parts of the path. Get/Post values can be read from handler.Request object (TODO: documentation).
 
 Templates
 =========
