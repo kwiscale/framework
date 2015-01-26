@@ -9,13 +9,22 @@ import (
 	"regexp"
 )
 
+var templateEngine = make(map[string]ITemplate)
+
+// RegisterTemplateEngine records template engine that implements ITemplate
+// interface. The name is used to let config select the template engine.
+func RegisterTemplateEngine(name string, t ITemplate) {
+	templateEngine[name] = t
+}
+
 // ITemplate should be implemented by other template implementation to
 // allow RequestHandlers to use Render() method
 type ITemplate interface {
 	// Render method to implement to compile and run template
-	// then write to Reponse. Should returns number of
-	// written byte and error is any.
+	// then write to ReponseWriter.
 	Render(io.Writer, string, interface{}) error
+
+	// SetTemplateDir should set the template base directory
 	SetTemplateDir(string)
 }
 

@@ -44,6 +44,7 @@ func main() {
 		TemplateDir: "template",
 		Port:        ":8000",
 	})
+
 	app.AddRoute("/", HomeHandler{})
 	app.AddRoute("/ws", WSHandler{})
 	app.AddRoute("/other/{userid:[0-9]+}", OtherHandler{})
