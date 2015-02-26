@@ -1,6 +1,7 @@
 package kwiscale
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"reflect"
@@ -10,20 +11,38 @@ import (
 
 // Config structure that holds configuration
 type Config struct {
-	TemplateDir    string
-	Port           string
+	// Root directory where TemplateEngine will get files
+	TemplateDir string
+	// Port to listen
+	Port string
+	// Number of handler to prepare
 	NbHandlerCache int
+	// TemplateEngine to use (default, pango2...)
 	TemplateEngine string
+	// SessionEngine (default is a file storage)
 	SessionsEngine string
-	SessionName    string
-	SessionSecret  []byte
+	// SessionName is the name of session, eg. Cookie name, default is "kwiscale-session"
+	SessionName string
+	// A secret string to encrypt cookie
+	SessionSecret []byte
+	// Static directory (to put css, images, and so on...)
+	StaticDir string
+	// Activate static in memory cache
+	StaticCacheEnabled bool
+
+	// DBDriver should be the name of a
+	// registered DB Driver (sqlite3, postgresql, mysql/mariadb...)
+	DBDriver string
+
+	// DBURL is the connection path/url to the database
+	DBURL string
 }
 
 // App handles router and handlers.
 type App struct {
 
 	// configuration
-	Config Config
+	Config *Config
 
 	// session store
 	sessionstore ISessionStore
@@ -39,10 +58,17 @@ type App struct {
 
 	// number of handler to keep in a channel
 	nbHandlerCache int
+
+	// DB connection
+	DB IORM
 }
 
 // Initialize config default values if some are not defined
-func initConfig(config *Config) {
+func initConfig(config *Config) *Config {
+	if config == nil {
+		config = new(Config)
+	}
+
 	if config.Port == "" {
 		config.Port = ":8000"
 	}
@@ -64,29 +90,56 @@ func initConfig(config *Config) {
 	if config.SessionSecret == nil {
 		config.SessionSecret = []byte("A very long secret string you should change")
 	}
+
+	/* no default ! use may not want to have a static handler
+	//
+	if config.StaticDir == "" {
+		config.StaticDir = "static"
+	}
+	/**/
+	return config
 }
 
 // NewApp Create new *App - App constructor.
-func NewApp(config Config) *App {
+func NewApp(config *Config) *App {
 
 	// fill up config for non-set values
-	initConfig(&config)
+	config = initConfig(config)
 
-	// generate app, assigne config, router and handlers map
-	a := new(App)
-	a.nbHandlerCache = config.NbHandlerCache
-	a.router = mux.NewRouter()
-	a.handlers = make(map[*mux.Route]string)
+	if debug {
+		log.Printf("%+v\n", config)
+	}
 
-	// Get template engine from config
-	a.templateEngine = templateEngine[config.TemplateEngine]
+	// generate app, assign config, router and handlers map
+	a := &App{
+		nbHandlerCache: config.NbHandlerCache,
+		router:         mux.NewRouter(),
+		handlers:       make(map[*mux.Route]string),
+
+		// Get template engine from config
+		templateEngine: templateEngine[config.TemplateEngine],
+	}
+
 	a.templateEngine.SetTemplateDir(config.TemplateDir)
 
 	// set sessstion store
 	a.sessionstore = sessionEngine[config.SessionsEngine]
-	a.sessionstore.Init()
 	a.sessionstore.Name(config.SessionName)
 	a.sessionstore.SetSecret(config.SessionSecret)
+	a.sessionstore.Init()
+
+	if config.StaticDir != "" {
+		a.SetStatic(config.StaticDir)
+	}
+
+	if config.DBDriver != "" {
+		db := ormDriverRegistry[config.DBDriver]
+		if db == nil {
+			panic(errors.New("Unable to find driver " + config.DBDriver))
+		}
+		db.ConnectionString(config.DBURL)
+		a.DB = db
+	}
 
 	// keep config
 	a.Config = config
@@ -98,6 +151,11 @@ func NewApp(config Config) *App {
 func (a *App) ListenAndServe() {
 	log.Println("Listening", a.Config.Port)
 	http.ListenAndServe(a.Config.Port, a)
+}
+
+// SetStatic set the route "prefix" to serve files configured in Config.StatiDir
+func (a *App) SetStatic(prefix string) {
+	a.AddRoute("/"+prefix+"/{file:.*}", staticHandler{})
 }
 
 // Implement http.Handler ServeHTTP method
@@ -116,12 +174,22 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// wait for a built handler from registry
 			req = <-handlerRegistry[handler]
 
+			if debug {
+				log.Print("Handler found ", req)
+			}
+
 			//assign some vars
 			req.(IBaseHandler).setVars(match.Vars, w, r)
 			req.(IBaseHandler).setApp(app)
 			req.(IBaseHandler).setSessionStore(app.sessionstore)
 			break //that's ok, we can continue
 		}
+		// code hasn't breaked, so we didn't found handler
+	}
+
+	if _, ok := req.(IBaseHandler); !ok {
+		HandleError(http.StatusNotFound, w, r, nil)
+		return
 	}
 
 	// Websocket case
@@ -130,14 +198,14 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		req.Serve()
 		return
 	}
-
-	// RequestHandler case
 	if req, ok := req.(IRequestHandler); ok {
+		// RequestHandler case
+		w.Header().Add("Connection", "close")
 		if debug {
 			log.Println("Respond to IRequestHandler", r.Method, req)
 		}
 		if req == nil {
-			w.WriteHeader(http.StatusNotFound)
+			HandleError(http.StatusNotFound, w, r, nil)
 			return
 		}
 
@@ -155,17 +223,15 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "PATCH":
 			req.Patch()
 		default:
-			w.WriteHeader(http.StatusBadRequest)
+			HandleError(http.StatusNotImplemented, w, r, nil)
 		}
-		return
-	}
-
-	w.WriteHeader(http.StatusInternalServerError)
-	log.Println("The request cannot be served, type of handler is not correct")
-	if debug {
-		log.Printf("RequestWriter: %+v\n", w)
-		log.Printf("Reponse: %+v", r)
-		log.Printf("KwiscaleHandler: %+v\n", req)
+	} else {
+		HandleError(http.StatusInternalServerError, w, r, nil)
+		if debug {
+			log.Printf("RequestWriter: %+v\n", w)
+			log.Printf("Reponse: %+v", r)
+			log.Printf("KwiscaleHandler: %+v\n", req)
+		}
 	}
 }
 
@@ -183,6 +249,7 @@ func (app *App) registerHandler(route *mux.Route, name string, h interface{}) {
 	handlerType := reflect.TypeOf(h)
 	// keep in mind that "route" is an pointer
 	app.handlers[route] = handlerType.String()
+	log.Print("Register ", handlerType.String())
 	// produce handlers
 	go app.handlerFactory(handlerType)
 }

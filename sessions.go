@@ -1,7 +1,9 @@
 package kwiscale
 
 import (
+	"errors"
 	"github.com/gorilla/sessions"
+	"log"
 )
 
 var sessionEngine = make(map[string]ISessionStore, 0)
@@ -25,11 +27,14 @@ type ISessionStore interface {
 	SetSecret([]byte)
 
 	// Get a value from storage , interface param is the key
-	Get(IBaseHandler, interface{}) interface{}
+	Get(IBaseHandler, interface{}) (interface{}, error)
 
 	// Set a value in the storage, first interface param is the key,
 	// second interface is the value to store
 	Set(IBaseHandler, interface{}, interface{})
+
+	// Clean, should cleanup files
+	Clean(IBaseHandler)
 }
 
 // SessionStore is a basic cookie based on gorilla.session.
@@ -55,14 +60,29 @@ func (s *SessionStore) Name(name string) {
 }
 
 // Get a value from session by name.
-func (s *SessionStore) Get(handler IBaseHandler, key interface{}) interface{} {
-	session, _ := s.store.Get(handler.getRequest(), s.name)
-	return session.Values[key]
+func (s *SessionStore) Get(handler IBaseHandler, key interface{}) (interface{}, error) {
+	session, err := s.store.Get(handler.getRequest(), s.name)
+	if err != nil {
+		return nil, err
+	}
+	log.Print("Getting session", key, session.Values[key])
+	if session.Values[key] == nil {
+		return nil, errors.New("empty session")
+	}
+	return session.Values[key], nil
 }
 
 // Set a named value in sessionstore.
 func (s *SessionStore) Set(handler IBaseHandler, key interface{}, val interface{}) {
+	log.Print("Writing session", key, val)
 	session, _ := s.store.Get(handler.getRequest(), s.name)
 	session.Values[key] = val
+	session.Save(handler.getRequest(), handler.getResponse())
+}
+
+func (s *SessionStore) Clean(handler IBaseHandler) {
+
+	session, _ := s.store.Get(handler.getRequest(), s.name)
+	session.Values = make(map[interface{}]interface{})
 	session.Save(handler.getRequest(), handler.getResponse())
 }
