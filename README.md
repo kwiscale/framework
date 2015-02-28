@@ -7,6 +7,15 @@ At this time, Kwiscale is at the very begining of developpement. But you can tes
 
 Check documentation: http://godoc.org/github.com/metal3d/kwiscale
 
+Features
+========
+
+- Implement your handlers as structs with HTTP Verbs as method
+- Plugin system for template engines, session engines and ORM
+- Use gorilla to manipulate routes and mux
+- Handler spawned with concurrency 
+
+
 How to use
 ==========
 
@@ -72,18 +81,25 @@ type OtherHandler struct {
 
 func (o *OtherHandler) Get (){
 	// read url params
-	// it always return a string !
+	// it always returns a string !
 	userid := o.Vars["userid"]
-	o.Response.WriteString(userid)
+	o.Response.WriteString(fmt.Printf("Hello user %s", userid))
 }
 
 
 func main() {
 	kwiscale.DEBUG = true
-	app := kwiscale.NewApp()
+	app := kwiscale.NewApp(&kswicale.Config{
+        Port: ":8000",
+    })
 	app.AddRoute("/", HomeHandler{})
 	app.AddRoute("/user/{userid:[0-9]+}", OtherHandler{})
-	http.ListenAndServe(":8000", app)
+    app.ListenAndServe()
+
+    // note: App respects http.Mux so you can use:
+    // http.ListenAndServe(":9999", app)
+    // to override behaviors, testing, or if your infrastructure
+    // restricts this usage
 }
 ```
 
@@ -98,7 +114,8 @@ Or build your project:
     ./main
 
 
-Visit http://127.0.0.1:8000/ and you should see "Hello FOO"
+- Visit http://127.0.0.1:8000/ and you should see "Hello FOO"
+- Visit http://127.0.0.1:8000/user/12345 and you should see "Hello user 12345"
 
 
 The Kwiscale way ?
@@ -114,12 +131,12 @@ Kwiscale let you declare Handler methods with the HTTP method. This allows you t
 * Patch()
 
 
-Templates
-=========
+Basic Templates
+===============
 
-Right now, basic templates (that are not so basics...) from golang sdk is the default template engine. But you can use Pango2 or other template engine. 
+Kwiscale provides a "basic" template engine that use `http/template`. Kwiscale only add a "very basic template override system".
 
-Kwiscale adds "override" system to import other templates. That way, you can call a subtemplate.
+If you plan to have a complete override system, please use http://github.com/metal3d/kwiscale-template-pango2 that implements pango2 template.
 
 See the following example.
 
@@ -136,6 +153,7 @@ Then create templates/main.html:
         <title>{{ if .title }}{{.title}}{{ else }} Default title {{ end }}</title>
     </head>
     <body>
+        {{/* Remember to use "." as context */}}
         {{ template "CONTENT" . }}
     </body>
 </html>
@@ -145,29 +163,31 @@ Now create templates/home directory:
     mkdir templates/home
 
 Create templates/home/welcome.html:
-    
-    {{ override "main.html" }}
+
+    {{/* override "main.html" */}}
 
     {{ define "CONTENT" }}
         This the welcome message {{ .msg }}
     {{ end }}
 
-This template override "main.html". 
+This template overrides "main.html" (in `./templates/` directory) and apppend "CONTENT" template definition. So, the "CONTENT" block will appear at `template "CONTENT"` in "main.html". That's all.  
 
-
-In handlers/index.go:
+In handlers/index.go you may now ask for template rendering:
 
 ```go
 func (h *IndexHandler) Get() {
-    h.Response.Render("home/welcome.html", kwiscale.ContextParams{
+    h.Render("home/welcome.html", map[string]string{
         "title" : "Welcome !!!",
         "msg"   : "Hello you",
     })
 }
 ```
 
-To use other template, you should create struct that interface kwiscale.ITemplateEngine. You only have to implement one method: Render(h kwiscale.Handler, templatename string, ctx kwiscale.ContextParams). This method should write template with h.Write(...).
+You can override template directory using App configuration passed to the constuctor:
 
-Note that ContextParams is a simple mam[interface{}]interface{}.
+```go
+app := kwiscale.NewApp(&kswiscale.Config{
+    TemplateDir: "./my-template-dir",
+})
 
-
+```
