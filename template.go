@@ -41,7 +41,9 @@ func (tpl *Template) SetTemplateDir(path string) {
 		log.Fatalln("Path not ok", err)
 	}
 	tpl.tpldir = t
-	log.Println("Template dir set to ", tpl.tpldir)
+	if debug {
+		log.Println("Template dir set to ", tpl.tpldir)
+	}
 }
 
 // Render method for the basic Template system.
