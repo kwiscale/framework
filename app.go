@@ -22,6 +22,25 @@ type handlerManager struct {
 	producer chan interface{}
 }
 
+// handlerFactory continuously generates new handlers in registry.
+// It launches a goroutine to produce those handlers. The number of
+// handlers to generate in cache is set by Config.NbHandlerCache.
+// Return a chanel to write in to close handler production
+func (manager handlerManager) produceHandlers() {
+	// forever produce handlers until closer is called
+	for {
+		select {
+		case manager.producer <- reflect.New(manager.handler).Interface():
+			if debug {
+				log.Println("Appended handler ", manager.handler.Name())
+			}
+		case <-manager.closer:
+			// Someone closed the factory
+			return
+		}
+	}
+}
+
 // the full registry
 var handlerRegistry = make(map[string]handlerManager)
 
@@ -273,26 +292,7 @@ func (app *App) AddRoute(route string, handler interface{}) {
 	}
 	// produce handlers
 	handlerRegistry[handlerType.String()] = manager
-	go app.produceHandlers(manager)
-}
-
-// handlerFactory continuously generates new handlers in registry.
-// It launches a goroutine to produce those handlers. The number of
-// handlers to generate in cache is set by Config.NbHandlerCache.
-// Return a chanel to write in to close handler production
-func (app *App) produceHandlers(manager handlerManager) {
-	// forever produce handlers until closer is called
-	for {
-		select {
-		case manager.producer <- reflect.New(manager.handler).Interface():
-			if debug {
-				log.Println("Appended handler ", manager.handler.Name())
-			}
-		case <-manager.closer:
-			// Someone closed the factory
-			return
-		}
-	}
+	go manager.produceHandlers()
 }
 
 // HangOut stops each handler manager goroutine (useful for testing)
