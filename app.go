@@ -89,9 +89,9 @@ func initConfig(config *Config) *Config {
 		config.Port = ":8000"
 	}
 
-	/*if config.NbHandlerCache == 0 {
+	if config.NbHandlerCache == 0 {
 		config.NbHandlerCache = 5
-	}*/
+	}
 
 	if config.TemplateEngine == "" {
 		config.TemplateEngine = "basic"

@@ -14,9 +14,7 @@ func (th *TestHandler) Get() {
 }
 
 func initApp(t *testing.T) *App {
-	conf := &Config{
-		NbHandlerCache: 1,
-	}
+	conf := &Config{}
 	app := NewApp(conf)
 
 	return app
