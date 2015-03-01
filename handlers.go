@@ -55,8 +55,8 @@ func (r *RequestHandler) Write(data []byte) (int, error) {
 }
 
 // WriteString is converts param to []byte then use Write method.
-func (r *RequestHandler) WriteString(data string) {
-	r.Response.Write([]byte(data))
+func (r *RequestHandler) WriteString(data string) (int, error) {
+	return r.Write([]byte(data))
 }
 
 // Stauts write int status to header (use htt.StatusXXX as status).

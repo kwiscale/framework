@@ -9,6 +9,22 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// handlerManager is used to manage handler production and close
+type handlerManager struct {
+
+	// the handler type to produce
+	handler reflect.Type
+
+	// record closers
+	closer chan int
+
+	// record handlers (as interface)
+	producer chan interface{}
+}
+
+// the full registry
+var handlerRegistry = make(map[string]handlerManager)
+
 // Config structure that holds configuration
 type Config struct {
 	// Root directory where TemplateEngine will get files
@@ -73,9 +89,9 @@ func initConfig(config *Config) *Config {
 		config.Port = ":8000"
 	}
 
-	if config.NbHandlerCache == 0 {
+	/*if config.NbHandlerCache == 0 {
 		config.NbHandlerCache = 5
-	}
+	}*/
 
 	if config.TemplateEngine == "" {
 		config.TemplateEngine = "basic"
@@ -172,7 +188,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// wait for a built handler from registry
-			req = <-handlerRegistry[handler]
+			req = <-handlerRegistry[handler].producer
 
 			if debug {
 				log.Print("Handler found ", req)
@@ -237,37 +253,54 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // AddRoute appends route mapped to handler. Note that rh parameter should
 // implement IRequestHandler (generally a struct composing RequestHandler)
-func (app *App) AddRoute(route string, rh interface{}) {
+func (app *App) AddRoute(route string, handler interface{}) {
 	r := app.router.NewRoute()
 	r.Path(route)
 	r.Name(route)
-	app.registerHandler(r, route, rh)
-}
 
-// registerHandler add the reflect.Type of handler in registry.
-func (app *App) registerHandler(route *mux.Route, name string, h interface{}) {
-	handlerType := reflect.TypeOf(h)
+	handlerType := reflect.TypeOf(handler)
 	// keep in mind that "route" is an pointer
-	app.handlers[route] = handlerType.String()
-	log.Print("Register ", handlerType.String())
+	app.handlers[r] = handlerType.String()
+	if debug {
+		log.Print("Register ", handlerType.String())
+	}
+
+	// register factory channel
+	manager := handlerManager{
+		handler:  handlerType,
+		closer:   make(chan int, 0),
+		producer: make(chan interface{}, app.nbHandlerCache),
+	}
 	// produce handlers
-	go app.handlerFactory(handlerType)
+	handlerRegistry[handlerType.String()] = manager
+	go app.produceHandlers(manager)
 }
 
 // handlerFactory continuously generates new handlers in registry.
 // It launches a goroutine to produce those handlers. The number of
 // handlers to generate in cache is set by Config.NbHandlerCache.
-func (app *App) handlerFactory(h reflect.Type) {
-	// register factory channel
-	// bufferize handler creation in channels
-	c := make(chan interface{}, app.nbHandlerCache)
-	handlerRegistry[h.String()] = c
-
-	// forever produce handlers
+// Return a chanel to write in to close handler production
+func (app *App) produceHandlers(manager handlerManager) {
+	// forever produce handlers until closer is called
 	for {
-		if debug {
-			log.Println("Append handler in channel: ", reflect.TypeOf(h))
+		select {
+		case manager.producer <- reflect.New(manager.handler).Interface():
+			if debug {
+				log.Println("Appended handler ", manager.handler.Name())
+			}
+		case <-manager.closer:
+			// Someone closed the factory
+			return
 		}
-		c <- reflect.New(h).Interface()
+	}
+}
+
+// HangOut stops each handler manager goroutine (useful for testing)
+func (app *App) SoftStop() {
+	for name, closer := range handlerRegistry {
+		if debug {
+			log.Println("Closing ", name)
+		}
+		closer.closer <- 1
 	}
 }

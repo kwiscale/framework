@@ -10,9 +10,6 @@ func SetDebug(mode bool) {
 	debug = mode
 }
 
-// Register canals that handle of RequestHandlers.
-var handlerRegistry = make(map[string]chan interface{})
-
 // IBaseHandler is the main handler interface that every handler sould
 // implement.
 type IBaseHandler interface {
