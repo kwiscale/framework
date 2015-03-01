@@ -64,6 +64,7 @@ func TestSimpleRequest(t *testing.T) {
 	app.SoftStop()
 }
 
+// Try to call a bad route
 func TestBadRequest(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://example.com/bad", nil)
 	w := httptest.NewRecorder()

@@ -2,7 +2,6 @@ package kwiscale
 
 import (
 	"io/ioutil"
-	"log"
 	"mime"
 	"net/http"
 	"path/filepath"
@@ -23,8 +22,6 @@ func (s *staticHandler) putInCache(c []byte, f string) {
 }
 
 func (s *staticHandler) Get() {
-	//s.getResponse().Header().Add("Connection", "close")
-	log.Print("Static asked")
 	file := s.Vars["file"]
 	file = filepath.Join(s.app.Config.StaticDir, file)
 
