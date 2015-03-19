@@ -135,7 +135,7 @@ Basic Templates
 
 Kwiscale provides a "basic" template engine that use `http/template`. Kwiscale only add a "very basic template override system".
 
-If you plan to have a complete override system, please use http://github.com/kwiscale/template-pango2 that implements pango2 template.
+If you plan to have a complete override system, please use http://github.com/kwiscale/template-pongo2 that implements pango2 template.
 
 See the following example.
 
