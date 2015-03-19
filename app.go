@@ -1,7 +1,6 @@
 package kwiscale
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"reflect"
@@ -67,10 +66,10 @@ type Config struct {
 
 	// DBDriver should be the name of a
 	// registered DB Driver (sqlite3, postgresql, mysql/mariadb...)
-	DBDriver string
+	//DBDriver string
 
 	// DBURL is the connection path/url to the database
-	DBURL string
+	//DBURL string
 }
 
 // App handles router and handlers.
@@ -95,7 +94,7 @@ type App struct {
 	nbHandlerCache int
 
 	// DB connection
-	DB IORM
+	//DB IORM
 }
 
 // Initialize config default values if some are not defined
@@ -167,14 +166,14 @@ func NewApp(config *Config) *App {
 		a.SetStatic(config.StaticDir)
 	}
 
-	if config.DBDriver != "" {
+	/*if config.DBDriver != "" {
 		db := ormDriverRegistry[config.DBDriver]
 		if db == nil {
 			panic(errors.New("Unable to find driver " + config.DBDriver))
 		}
 		db.ConnectionString(config.DBURL)
 		a.DB = db
-	}
+	}*/
 
 	// keep config
 	a.Config = config

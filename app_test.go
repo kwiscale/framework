@@ -20,7 +20,7 @@ func initApp(t *testing.T) *App {
 	return app
 }
 
-func TestBadDBDriver(t *testing.T) {
+/*func TestBadDBDriver(t *testing.T) {
 	defer func() {
 		err := recover()
 		if err == nil {
@@ -36,7 +36,7 @@ func TestBadDBDriver(t *testing.T) {
 
 	// This should be NOT executed
 	t.Error("That instruction should not be executed")
-}
+}*/
 
 func TestCloser(t *testing.T) {
 	app := initApp(t)
