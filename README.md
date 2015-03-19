@@ -48,7 +48,7 @@ type IndexHandler struct {
 
 // Will respond to GET request. "params" are url params (not GET and POST data)
 func (i *IndexHandler) Get () {
-    i.WriteString("Hello !" + i.Vars["username"])
+    i.WriteString("Hello !" + i.Vars["userid"])
 }
 ```
 
