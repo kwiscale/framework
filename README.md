@@ -5,7 +5,7 @@ Web Middleware for Golang
 
 At this time, Kwiscale is at the very begining of developpement. But you can test and give'em some pull-request to improve it.
 
-Check documentation: http://godoc.org/github.com/metal3d/kwiscale
+Check documentation: http://godoc.org/github.com/kwiscale/framework
 
 Features
 ========
@@ -21,7 +21,7 @@ How to use
 
 Install with "go get" command:
 
-    go get github.com/metal3d/kwiscale
+    go get github.com/kwiscale/framework
 
 Create a project:
 
@@ -37,7 +37,7 @@ Let's try an example:
 ```go
 package handlers
 
-import "github.com/metal3d/kwiscale"
+import "github.com/kwiscale/framework"
 
 // this is the Index Handler that
 // is composed by a RequestHandler
@@ -59,7 +59,7 @@ Then in you main.go::
 package main
 
 import (
-    "github.com/metal3d/kwiscale"
+    "github.com/kwiscale/framework"
     "./handlers"
 )
 
@@ -135,7 +135,7 @@ Basic Templates
 
 Kwiscale provides a "basic" template engine that use `http/template`. Kwiscale only add a "very basic template override system".
 
-If you plan to have a complete override system, please use http://github.com/metal3d/kwiscale-template-pango2 that implements pango2 template.
+If you plan to have a complete override system, please use http://github.com/kwiscale/template-pango2 that implements pango2 template.
 
 See the following example.
 
