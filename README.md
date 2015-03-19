@@ -42,14 +42,13 @@ import "github.com/metal3d/kwiscale"
 // this is the Index Handler that
 // is composed by a RequestHandler
 type IndexHandler struct {
-
     // compose your handler with kwiscale.Handler
-    kwiscale.Handler
+    kwiscale.RequestHandler
 }
 
 // Will respond to GET request. "params" are url params (not GET and POST data)
-func (this *IndexHandler) Get (params map[string]string) {
-    this.Write("Hello !" + params["username"])
+func (i *IndexHandler) Get () {
+    i.WriteString("Hello !" + i.Vars["username"])
 }
 ```
 
@@ -71,7 +70,7 @@ type HomeHandler struct {
 
 // Get respond to GET request
 func (h *HomeHandler) Get (){
-	h.Response.WriteString("reponse to GET home")
+	h.WriteString("reponse to GET home")
 }
 
 // Another handler
@@ -83,7 +82,7 @@ func (o *OtherHandler) Get (){
 	// read url params
 	// it always returns a string !
 	userid := o.Vars["userid"]
-	o.Response.WriteString(fmt.Printf("Hello user %s", userid))
+	o.WriteString(fmt.Printf("Hello user %s", userid))
 }
 
 
