@@ -2,7 +2,10 @@ package kwiscale
 
 // There, we define HTTP handlers - they are based on BaseHandler
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
+)
 
 // IRequestHandler interface which declare HTTP verbs.
 type IRequestHandler interface {
@@ -57,6 +60,17 @@ func (r *RequestHandler) Write(data []byte) (int, error) {
 // WriteString is converts param to []byte then use Write method.
 func (r *RequestHandler) WriteString(data string) (int, error) {
 	return r.Write([]byte(data))
+}
+
+// WriteJSON converts data to json then send bytes.
+// This methods set content-type to application/json (RFC 4627)
+func (r *RequestHandler) WriteJSON(data interface{}) (int, error) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return -1, err
+	}
+	r.Response.Header().Add("Content-Type", "application/json")
+	return r.Write(b)
 }
 
 // Stauts write int status to header (use htt.StatusXXX as status).
