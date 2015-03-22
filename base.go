@@ -1,6 +1,14 @@
 package kwiscale
 
-import "net/http"
+import (
+	"encoding/json"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
+	"net/http"
+	"net/url"
+	"os"
+)
 
 // Enable debug logs.
 var debug = false
@@ -73,4 +81,55 @@ func (b *BaseHandler) SetSession(key interface{}, value interface{}) {
 // CleanSession remove every key/value of the current session.
 func (b *BaseHandler) CleanSession() {
 	b.sessionStore.Clean(b)
+}
+
+// GetPayload returns the Body content.
+func (b *BaseHandler) GetPayload() []byte {
+	content, err := ioutil.ReadAll(b.Request.Body)
+	if err != nil {
+		return nil
+	}
+	return content
+}
+
+// GetJSONPayload unmarshal body to the "v" interface.
+func (b *BaseHandler) GetJSONPayload(v interface{}) error {
+	return json.Unmarshal(b.GetPayload(), v)
+}
+
+// GetPos return the post data for the given "name" argument.
+func (b *BaseHandler) GetPost(name string) string {
+	return b.Request.PostFormValue(name)
+}
+
+// GetPostValues returns the entire posted values.
+func (b *BaseHandler) GetPostValues() url.Values {
+	b.Request.ParseForm()
+	return b.Request.PostForm
+}
+
+// GetPostFile returns the "name" file pointer and information from the post data.
+func (b *BaseHandler) GetPostFile(name string) (multipart.File, *multipart.FileHeader, error) {
+	b.Request.ParseForm()
+	return b.Request.FormFile(name)
+}
+
+// SavePostFile save the given "name" file to the "to" path.
+func (b *BaseHandler) SavePostFile(name, to string) error {
+	b.Request.ParseForm()
+	file, _, err := b.GetPostFile(name)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	out, err := os.Create(to)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, file)
+
+	return err
 }
