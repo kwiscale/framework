@@ -189,7 +189,7 @@ func (a *App) ListenAndServe(port ...string) {
 	if len(port) > 0 {
 		p = port[0]
 	}
-	log.Println("Listening", port)
+	log.Println("Listening", p)
 	http.ListenAndServe(p, a)
 }
 
