@@ -29,6 +29,8 @@ type IBaseHandler interface {
 	SetSession(interface{}, interface{})
 
 	setSessionStore(ISessionStore)
+	Init()
+	Destroy()
 }
 
 // BaseHandler is the parent struct of every Handler.
@@ -40,6 +42,12 @@ type BaseHandler struct {
 
 	app *App
 }
+
+// Init is called before the begin of response (before Get, Post, and so on).
+func (r *BaseHandler) Init() {}
+
+// Destroy is called as defered function after response.
+func (r *BaseHandler) Destroy() {}
 
 // setVars initialize vars from url
 func (r *BaseHandler) setVars(v map[string]string, w http.ResponseWriter, req *http.Request) {

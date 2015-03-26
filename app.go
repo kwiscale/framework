@@ -21,6 +21,8 @@ type handlerManager struct {
 	producer chan interface{}
 }
 
+type HandlerFactory func() IBaseHandler
+
 // handlerFactory continuously generates new handlers in registry.
 // It launches a goroutine to produce those handlers. The number of
 // handlers to generate in cache is set by Config.NbHandlerCache.
@@ -182,17 +184,21 @@ func NewApp(config *Config) *App {
 }
 
 // ListenAndServe calls http.ListenAndServe method
-func (a *App) ListenAndServe() {
-	log.Println("Listening", a.Config.Port)
-	http.ListenAndServe(a.Config.Port, a)
+func (a *App) ListenAndServe(port ...string) {
+	p := a.Config.Port
+	if len(port) > 0 {
+		p = port[0]
+	}
+	log.Println("Listening", port)
+	http.ListenAndServe(p, a)
 }
 
-// SetStatic set the route "prefix" to serve files configured in Config.StatiDir
+// SetStatic set the route "prefix" to serve files configured in Config.StaticDir
 func (a *App) SetStatic(prefix string) {
 	a.AddRoute("/"+prefix+"/{file:.*}", staticHandler{})
 }
 
-// Implement http.Handler ServeHTTP method
+// Implement http.Handler ServeHTTP method.
 func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var req interface{}
@@ -221,7 +227,12 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// code hasn't breaked, so we didn't found handler
 	}
 
-	if _, ok := req.(IBaseHandler); !ok {
+	if req, ok := req.(IBaseHandler); ok {
+		// Call Init before starting response
+		req.Init()
+		// Prepare defered destroy
+		defer req.Destroy()
+	} else {
 		HandleError(http.StatusNotFound, w, r, nil)
 		return
 	}
@@ -270,7 +281,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // AddRoute appends route mapped to handler. Note that rh parameter should
-// implement IRequestHandler (generally a struct composing RequestHandler)
+// implement IRequestHandler (generally a struct composing RequestHandler).
 func (app *App) AddRoute(route string, handler interface{}) {
 	r := app.router.NewRoute()
 	r.Path(route)
@@ -294,7 +305,7 @@ func (app *App) AddRoute(route string, handler interface{}) {
 	go manager.produceHandlers()
 }
 
-// HangOut stops each handler manager goroutine (useful for testing)
+// HangOut stops each handler manager goroutine (useful for testing).
 func (app *App) SoftStop() {
 	for name, closer := range handlerRegistry {
 		if debug {
