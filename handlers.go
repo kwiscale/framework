@@ -15,6 +15,8 @@ type IRequestHandler interface {
 	Head()
 	Patch()
 	Delete()
+	Options()
+	Trace()
 }
 
 // RequestHandler that should be composed by users.
@@ -49,6 +51,16 @@ func (r *RequestHandler) Head() {
 
 // Patch implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Patch() {
+	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+}
+
+// Options implements IRequestHandler Method - default "not found".
+func (r *RequestHandler) Options() {
+	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+}
+
+// Trace implements IRequestHandler Method - default "not found".
+func (r *RequestHandler) Trace() {
 	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
 }
 

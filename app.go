@@ -267,6 +267,10 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			req.Post()
 		case "PATCH":
 			req.Patch()
+		case "OPTIONS":
+			req.Options()
+		case "TRACE":
+			req.Trace()
 		default:
 			HandleError(http.StatusNotImplemented, w, r, nil)
 		}
