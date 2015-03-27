@@ -7,7 +7,7 @@ Kwiscale can also serve Websockets.
 It provides a basic template system based on http/template from Go SDK and has got a plugin system to provides other template
 engines
 
-See http://github.com/metal3d/kwiscale-template-pongo2 to use Pongo2.
+See http://gopkg.in/kwiscale/template-pongo2.v0 to use Pongo2.
 
 To handle HTTP Verbs:
 
