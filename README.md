@@ -5,8 +5,6 @@ Web Middleware for Golang
 
 At this time, Kwiscale is at the very begining of developpement. But you can test and give'em some pull-request to improve it.
 
-Check documentation: http://godoc.org/github.com/kwiscale/framework
-
 Features
 ========
 
@@ -21,7 +19,7 @@ How to use
 
 Install with "go get" command:
 
-    go get github.com/kwiscale/framework
+    go get gopkg.in/kwiscale/framework.v0.v0
 
 Create a project:
 
@@ -37,7 +35,7 @@ Let's try an example:
 ```go
 package handlers
 
-import "github.com/kwiscale/framework"
+import "gopkg.in/kwiscale/framework.v0"
 
 // this is the Index Handler that
 // is composed by a RequestHandler
@@ -59,7 +57,7 @@ Then in you main.go::
 package main
 
 import (
-    "github.com/kwiscale/framework"
+    "gopkg.in/kwiscale/framework.v0"
     "./handlers"
 )
 
@@ -135,7 +133,7 @@ Basic Templates
 
 Kwiscale provides a "basic" template engine that use `http/template`. Kwiscale only add a "very basic template override system".
 
-If you plan to have a complete override system, please use http://github.com/kwiscale/template-pongo2 that implements pango2 template.
+If you plan to have a complete override system, please use http://gopkg.in/kwiscale/template-pongo2.v0 that implements pango2 template.
 
 See the following example.
 
@@ -169,7 +167,7 @@ Create templates/home/welcome.html:
         This the welcome message {{ .msg }}
     {{ end }}
 
-This template overrides "main.html" (in `./templates/` directory) and apppend "CONTENT" template definition. So, the "CONTENT" block will appear at `template "CONTENT"` in "main.html". That's all.  
+This template overrides "main.html" (in `./templates/` directory) and append "CONTENT" template definition. So, the "CONTENT" block will appear at `template "CONTENT"` in "main.html". That's all.  
 
 In handlers/index.go you may now ask for template rendering:
 
@@ -182,7 +180,7 @@ func (h *IndexHandler) Get() {
 }
 ```
 
-You can override template directory using App configuration passed to the constuctor:
+You can override template directory using App configuration passed to the constructor:
 
 ```go
 app := kwiscale.NewApp(&kswiscale.Config{
