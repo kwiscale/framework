@@ -1,9 +1,13 @@
 kwiscale
 ========
 
+[![GoDoc](https://godoc.org/gopkg.in/kwiscale/framework.v0?status.svg)](https://godoc.org/gopkg.in/kwiscale/framework.v0)
+
+
 Web Middleware for Golang
 
 At this time, Kwiscale is at the very begining of developpement. But you can test and give'em some pull-request to improve it.
+
 
 Features
 ========
