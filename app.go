@@ -55,6 +55,8 @@ type Config struct {
 	NbHandlerCache int
 	// TemplateEngine to use (default, pango2...)
 	TemplateEngine string
+	// Template engine options (some addons need options)
+	TemplateEngineOptions TplOptions
 	// SessionEngine (default is a file storage)
 	SessionsEngine string
 	// SessionName is the name of session, eg. Cookie name, default is "kwiscale-session"
@@ -157,6 +159,7 @@ func NewApp(config *Config) *App {
 	}
 
 	a.templateEngine.SetTemplateDir(config.TemplateDir)
+	a.templateEngine.SetTemplateOptions(&config.TemplateEngineOptions)
 
 	// set sessstion store
 	a.sessionstore = sessionEngine[config.SessionsEngine]
@@ -229,7 +232,11 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if req, ok := req.(IBaseHandler); ok {
 		// Call Init before starting response
-		req.Init()
+		if err, code := req.Init(); err != nil {
+			// Init stops the request with error
+			HandleError(code, req.getResponse(), req.getRequest(), err)
+			return
+		}
 		// Prepare defered destroy
 		defer req.Destroy()
 	} else {

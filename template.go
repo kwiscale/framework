@@ -11,6 +11,9 @@ import (
 
 var templateEngine = make(map[string]ITemplate)
 
+// Options to pass to template engines if needed
+type TplOptions map[string]interface{}
+
 // RegisterTemplateEngine records template engine that implements ITemplate
 // interface. The name is used to let config select the template engine.
 func RegisterTemplateEngine(name string, t ITemplate) {
@@ -26,6 +29,9 @@ type ITemplate interface {
 
 	// SetTemplateDir should set the template base directory
 	SetTemplateDir(string)
+
+	// SetOptions pass TplOptions to template engine
+	SetTemplateOptions(*TplOptions)
 }
 
 // Basic template engine that use html/template
@@ -80,6 +86,9 @@ func (tpl *Template) Render(w io.Writer, file string, ctx interface{}) error {
 
 	return t.Execute(w, ctx)
 }
+
+// Template is basic, it doesn't need options
+func (tpl *Template) SetTemplateOptions(opt *TplOptions) {}
 
 // parseOverride will append overriden templates to be integrating in the
 // template list to render

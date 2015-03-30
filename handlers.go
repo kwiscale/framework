@@ -17,11 +17,22 @@ type IRequestHandler interface {
 	Delete()
 	Options()
 	Trace()
+	Redirect(url string, code int)
+	GlobalCtx() map[string]interface{}
 }
 
 // RequestHandler that should be composed by users.
 type RequestHandler struct {
 	BaseHandler
+	tplGlobals map[string]interface{}
+}
+
+// GlobalCtx Returns global template context.
+func (r *RequestHandler) GlobalCtx() map[string]interface{} {
+	if r.tplGlobals == nil {
+		r.tplGlobals = make(map[string]interface{})
+	}
+	return r.tplGlobals
 }
 
 // Get implements IRequestHandler Method - default "not found".
@@ -91,6 +102,31 @@ func (r *RequestHandler) Status(status int) {
 }
 
 // Render calls assigned template engine Render method.
-func (r *RequestHandler) Render(file string, ctx interface{}) error {
-	return r.app.templateEngine.Render(r, file, ctx)
+// This method copies globalCtx and write ctx inside. So, contexts are not overriden, it
+// only merge 2 context in a new one that is passed to template.
+func (r *RequestHandler) Render(file string, ctx map[string]interface{}) error {
+	// merge global context with the given
+	// ctx should override gobal context
+	newctx := make(map[string]interface{})
+	for k, v := range r.GlobalCtx() {
+		newctx[k] = v
+	}
+	for k, v := range ctx {
+		newctx[k] = v
+	}
+	return r.app.templateEngine.Render(r, file, newctx)
+}
+
+// Redirect will redirect client to "uri" with status code. A status < 0 will send
+// http.StatusSeeOther code (303) that changes HTTP verb to "GET". To redirect
+// with the same verb (eg. POST), please use http.StatusTemporaryRedirect (307).
+func (r *RequestHandler) Redirect(uri string, status int) {
+
+	r.Response.Header().Add("Location", uri)
+	if status < 0 {
+		// by default, we use SeeOther status. This status
+		// should change HTTP verb to GET
+		status = http.StatusSeeOther
+	}
+	r.Status(status)
 }

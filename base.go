@@ -29,7 +29,7 @@ type IBaseHandler interface {
 	SetSession(interface{}, interface{})
 
 	setSessionStore(ISessionStore)
-	Init()
+	Init() (errorMessage error, status int)
 	Destroy()
 }
 
@@ -44,7 +44,10 @@ type BaseHandler struct {
 }
 
 // Init is called before the begin of response (before Get, Post, and so on).
-func (r *BaseHandler) Init() {}
+// If error is not nil, framework will write response with the second argument as http status.
+func (r *BaseHandler) Init() (error, int) {
+	return nil, -1
+}
 
 // Destroy is called as defered function after response.
 func (r *BaseHandler) Destroy() {}
