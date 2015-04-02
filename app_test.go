@@ -16,7 +16,6 @@ func (th *TestHandler) Get() {
 func initApp(t *testing.T) *App {
 	conf := &Config{}
 	app := NewApp(conf)
-
 	return app
 }
 
@@ -70,9 +69,11 @@ func TestBadRequest(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	app := initApp(t)
+	app.AddRoute("/foo", TestHandler{})
 	app.ServeHTTP(w, r)
 	if w.Code != http.StatusNotFound {
 		t.Error(`HTTP Status is not "not found": `, w.Code)
 	}
 
+	app.SoftStop()
 }

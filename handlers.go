@@ -17,7 +17,8 @@ type IRequestHandler interface {
 	Delete()
 	Options()
 	Trace()
-	Redirect(url string, code int)
+	Redirect(url string)
+	RedirectWithStatus(url string, httpStatus int)
 	GlobalCtx() map[string]interface{}
 }
 
@@ -117,11 +118,8 @@ func (r *RequestHandler) Render(file string, ctx map[string]interface{}) error {
 	return r.app.templateEngine.Render(r, file, newctx)
 }
 
-// Redirect will redirect client to "uri" with status code. A status < 0 will send
-// http.StatusSeeOther code (303) that changes HTTP verb to "GET". To redirect
-// with the same verb (eg. POST), please use http.StatusTemporaryRedirect (307).
-func (r *RequestHandler) Redirect(uri string, status int) {
-
+// redirect client with http status.
+func (r *RequestHandler) redirect(uri string, status int) {
 	r.Response.Header().Add("Location", uri)
 	if status < 0 {
 		// by default, we use SeeOther status. This status
@@ -129,4 +127,14 @@ func (r *RequestHandler) Redirect(uri string, status int) {
 		status = http.StatusSeeOther
 	}
 	r.Status(status)
+}
+
+// Redirect will redirect client to uri using http.StatusSeeOther.
+func (r *RequestHandler) Redirect(uri string) {
+	r.redirect(uri, -1)
+}
+
+// RedirectWithStatus will redirect client to uri using given status.
+func (r *RequestHandler) RedirectWithStatus(uri string, status int) {
+	r.redirect(uri, status)
 }

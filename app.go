@@ -250,6 +250,8 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		req.Serve()
 		return
 	}
+
+	// Standard Request
 	if req, ok := req.(IRequestHandler); ok {
 		// RequestHandler case
 		w.Header().Add("Connection", "close")
@@ -284,6 +286,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		HandleError(http.StatusInternalServerError, w, r, nil)
 		if debug {
+			log.Printf("Registry: %+v\n", handlerRegistry)
 			log.Printf("RequestWriter: %+v\n", w)
 			log.Printf("Reponse: %+v", r)
 			log.Printf("KwiscaleHandler: %+v\n", req)
