@@ -68,6 +68,9 @@ type Config struct {
 	// Activate static in memory cache
 	StaticCacheEnabled bool
 
+	// StrictSlash allows to match route that have trailing slashes
+	StrictSlash bool
+
 	// DBDriver should be the name of a
 	// registered DB Driver (sqlite3, postgresql, mysql/mariadb...)
 	//DBDriver string
@@ -129,12 +132,6 @@ func initConfig(config *Config) *Config {
 		config.SessionSecret = []byte("A very long secret string you should change")
 	}
 
-	/* no default ! use may not want to have a static handler
-	//
-	if config.StaticDir == "" {
-		config.StaticDir = "static"
-	}
-	/**/
 	return config
 }
 
@@ -171,14 +168,7 @@ func NewApp(config *Config) *App {
 		a.SetStatic(config.StaticDir)
 	}
 
-	/*if config.DBDriver != "" {
-		db := ormDriverRegistry[config.DBDriver]
-		if db == nil {
-			panic(errors.New("Unable to find driver " + config.DBDriver))
-		}
-		db.ConnectionString(config.DBURL)
-		a.DB = db
-	}*/
+	a.router.StrictSlash(config.StrictSlash)
 
 	// keep config
 	a.Config = config
