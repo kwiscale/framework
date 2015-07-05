@@ -19,24 +19,6 @@ func initApp(t *testing.T) *App {
 	return app
 }
 
-/*func TestBadDBDriver(t *testing.T) {
-	defer func() {
-		err := recover()
-		if err == nil {
-			// Error should exist
-			t.Error("No error captured")
-		}
-	}()
-
-	// That must FAIL and go to the recover
-	NewApp(&Config{
-		DBDriver: "unknown",
-	})
-
-	// This should be NOT executed
-	t.Error("That instruction should not be executed")
-}*/
-
 func TestCloser(t *testing.T) {
 	app := initApp(t)
 	app.AddRoute("/foo", TestHandler{})
