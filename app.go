@@ -286,13 +286,15 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (app *App) AddRoute(route string, handler interface{}) {
 	r := app.router.NewRoute()
 	r.Path(route)
-	r.Name(route)
 
 	handlerType := reflect.TypeOf(handler)
+	name := handlerType.String()
 	// keep in mind that "route" is an pointer
-	app.handlers[r] = handlerType.String()
+	app.handlers[r] = name
+	r.Name(name)
+
 	if debug {
-		log.Print("Register ", handlerType.String())
+		log.Print("Register ", name)
 	}
 
 	// register factory channel
