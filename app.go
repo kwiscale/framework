@@ -230,7 +230,10 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Websocket case
 	if req, ok := req.(IWSHandler); ok {
-		req.upgrade()
+		if err := req.upgrade(); err != nil {
+			log.Println("Error upgrading Websocket protocol", err)
+			return
+		}
 		req.Serve()
 		return
 	}
