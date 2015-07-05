@@ -96,12 +96,6 @@ type App struct {
 
 	// List of handler "names" mapped to route (will be create by a factory)
 	handlers map[*mux.Route]string
-
-	// number of handler to keep in a channel
-	nbHandlerCache int
-
-	// DB connection
-	//DB IORM
 }
 
 // Initialize config default values if some are not defined
@@ -147,9 +141,9 @@ func NewApp(config *Config) *App {
 
 	// generate app, assign config, router and handlers map
 	a := &App{
-		nbHandlerCache: config.NbHandlerCache,
-		router:         mux.NewRouter(),
-		handlers:       make(map[*mux.Route]string),
+		Config:   config,
+		router:   mux.NewRouter(),
+		handlers: make(map[*mux.Route]string),
 
 		// Get template engine from config
 		templateEngine: templateEngine[config.TemplateEngine],
@@ -302,14 +296,14 @@ func (app *App) AddRoute(route string, handler interface{}) {
 	manager := handlerManager{
 		handler:  handlerType,
 		closer:   make(chan int, 0),
-		producer: make(chan interface{}, app.nbHandlerCache),
+		producer: make(chan interface{}, app.Config.NbHandlerCache),
 	}
 	// produce handlers
 	handlerRegistry[handlerType.String()] = manager
 	go manager.produceHandlers()
 }
 
-// HangOut stops each handler manager goroutine (useful for testing).
+// SoftStrop stops each handler manager goroutine (useful for testing).
 func (app *App) SoftStop() {
 	for name, closer := range handlerRegistry {
 		if debug {
