@@ -22,7 +22,7 @@ func initApp(t *testing.T) *App {
 func TestCloser(t *testing.T) {
 	app := initApp(t)
 	app.AddRoute("/foo", TestHandler{})
-	app.SoftStop()
+	<-app.SoftStop()
 }
 
 // TestSimpleRequest should respond whit 200 and print "hello"
@@ -42,7 +42,7 @@ func TestSimpleRequest(t *testing.T) {
 	if string(resp) != "Hello" {
 		t.Error("Handler didn't respond with 'hello': ", string(resp))
 	}
-	app.SoftStop()
+	<-app.SoftStop()
 }
 
 // Try to call a bad route
@@ -57,5 +57,5 @@ func TestBadRequest(t *testing.T) {
 		t.Error(`HTTP Status is not "not found": `, w.Code)
 	}
 
-	app.SoftStop()
+	<-app.SoftStop()
 }

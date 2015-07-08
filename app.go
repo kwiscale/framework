@@ -37,7 +37,7 @@ func (manager handlerManager) produceHandlers() {
 			}
 		case <-manager.closer:
 			// Someone closed the factory
-			return
+			break
 		}
 	}
 }
@@ -284,19 +284,26 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // AddRoute appends route mapped to handler. Note that rh parameter should
 // implement IRequestHandler (generally a struct composing RequestHandler).
 func (app *App) AddRoute(route string, handler interface{}) {
-	r := app.router.NewRoute()
-	r.Path(route)
-
 	handlerType := reflect.TypeOf(handler)
 	name := handlerType.String()
-	// keep in mind that "route" is an pointer
-	app.handlers[r] = name
+
+	// record a route
+	r := app.router.NewRoute()
+	r.Path(route)
 	r.Name(name)
 
+	app.handlers[r] = name
 	if debug {
 		log.Print("Register ", name)
 	}
 
+	if _, ok := handlerRegistry[name]; ok {
+		// do not create registry manager if it exists
+		if debug {
+			log.Println("Registry manager for", name, "already exists")
+		}
+		return
+	}
 	// register factory channel
 	manager := handlerManager{
 		handler:  handlerType,
@@ -304,16 +311,21 @@ func (app *App) AddRoute(route string, handler interface{}) {
 		producer: make(chan interface{}, app.Config.NbHandlerCache),
 	}
 	// produce handlers
-	handlerRegistry[handlerType.String()] = manager
+	handlerRegistry[name] = manager
 	go manager.produceHandlers()
 }
 
-// SoftStrop stops each handler manager goroutine (useful for testing).
-func (app *App) SoftStop() {
-	for name, closer := range handlerRegistry {
-		if debug {
-			log.Println("Closing ", name)
+// HangOut stops each handler manager goroutine (useful for testing).
+func (app *App) SoftStop() chan int {
+	c := make(chan int, 0)
+	go func() {
+		for name, closer := range handlerRegistry {
+			if debug {
+				log.Println("Closing ", name)
+			}
+			closer.closer <- 1
 		}
-		closer.closer <- 1
-	}
+		c <- 1
+	}()
+	return c
 }
