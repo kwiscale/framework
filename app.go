@@ -236,7 +236,10 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Websocket case
 	if req, ok := req.(IWSHandler); ok {
-		req.upgrade()
+		if err := req.upgrade(); err != nil {
+			log.Println(err)
+			return
+		}
 		req.Serve()
 		return
 	}
@@ -310,11 +313,16 @@ func (app *App) AddRoute(route string, handler interface{}) {
 }
 
 // HangOut stops each handler manager goroutine (useful for testing).
-func (app *App) SoftStop() {
-	for name, closer := range handlerRegistry {
-		if debug {
-			log.Println("Closing ", name)
+func (app *App) SoftStop() chan int {
+	c := make(chan int, 0)
+	go func() {
+		for name, closer := range handlerRegistry {
+			if debug {
+				log.Println("Closing ", name)
+			}
+			closer.closer <- 1
 		}
-		closer.closer <- 1
-	}
+		c <- 1
+	}()
+	return c
 }
