@@ -37,7 +37,7 @@ func (manager handlerManager) produceHandlers() {
 			}
 		case <-manager.closer:
 			// Someone closed the factory
-			return
+			break
 		}
 	}
 }
@@ -290,17 +290,26 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // AddRoute appends route mapped to handler. Note that rh parameter should
 // implement IRequestHandler (generally a struct composing RequestHandler).
 func (app *App) AddRoute(route string, handler interface{}) {
+	handlerType := reflect.TypeOf(handler)
+	name := handlerType.String()
+
+	// record a route
 	r := app.router.NewRoute()
 	r.Path(route)
-	r.Name(route)
+	r.Name(name)
 
-	handlerType := reflect.TypeOf(handler)
-	// keep in mind that "route" is an pointer
-	app.handlers[r] = handlerType.String()
+	app.handlers[r] = name
 	if debug {
-		log.Print("Register ", handlerType.String())
+		log.Print("Register ", name)
 	}
 
+	if _, ok := handlerRegistry[name]; ok {
+		// do not create registry manager if it exists
+		if debug {
+			log.Println("Registry manager for", name, "already exists")
+		}
+		return
+	}
 	// register factory channel
 	manager := handlerManager{
 		handler:  handlerType,
@@ -308,7 +317,7 @@ func (app *App) AddRoute(route string, handler interface{}) {
 		producer: make(chan interface{}, app.nbHandlerCache),
 	}
 	// produce handlers
-	handlerRegistry[handlerType.String()] = manager
+	handlerRegistry[name] = manager
 	go manager.produceHandlers()
 }
 
