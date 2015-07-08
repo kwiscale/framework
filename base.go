@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/gorilla/mux"
 )
 
 // Enable debug logs.
@@ -23,6 +25,7 @@ func SetDebug(mode bool) {
 type IBaseHandler interface {
 	setVars(map[string]string, http.ResponseWriter, *http.Request)
 	setApp(*App)
+	setRoute(*mux.Route)
 	getRequest() *http.Request
 	getResponse() http.ResponseWriter
 	GetSession(interface{}) (interface{}, error)
@@ -31,6 +34,7 @@ type IBaseHandler interface {
 	setSessionStore(ISessionStore)
 	Init() (errorMessage error, status int)
 	Destroy()
+	GetURL(...string) (*url.URL, error)
 }
 
 // BaseHandler is the parent struct of every Handler.
@@ -40,7 +44,8 @@ type BaseHandler struct {
 	Vars         map[string]string
 	sessionStore ISessionStore
 
-	app *App
+	route *mux.Route
+	app   *App
 }
 
 // Init is called before the begin of response (before Get, Post, and so on).
@@ -62,6 +67,11 @@ func (r *BaseHandler) setVars(v map[string]string, w http.ResponseWriter, req *h
 // setApp assign App to the handler
 func (r *BaseHandler) setApp(a *App) {
 	r.app = a
+}
+
+// setRoute register mux.Route in the handler.
+func (b *BaseHandler) setRoute(r *mux.Route) {
+	b.route = r
 }
 
 // getReponse returns the current response.
@@ -143,4 +153,9 @@ func (b *BaseHandler) SavePostFile(name, to string) error {
 	_, err = io.Copy(out, file)
 
 	return err
+}
+
+// GetURL return an url based on the declared route and given string pair.
+func (b *BaseHandler) GetURL(s ...string) (*url.URL, error) {
+	return b.route.URL(s...)
 }

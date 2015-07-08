@@ -1,3 +1,4 @@
+// +build !race
 package kwiscale
 
 import (
@@ -39,6 +40,9 @@ func (manager handlerManager) produceHandlers() {
 			// Someone closed the factory
 			break
 		}
+	}
+	if debug {
+		log.Println("Quitting ", manager.handler.Name, "producer")
 	}
 }
 
@@ -206,6 +210,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			//assign some vars
+			req.(IBaseHandler).setRoute(route)
 			req.(IBaseHandler).setVars(match.Vars, w, r)
 			req.(IBaseHandler).setApp(app)
 			req.(IBaseHandler).setSessionStore(app.sessionstore)
@@ -315,7 +320,7 @@ func (app *App) AddRoute(route string, handler interface{}) {
 	go manager.produceHandlers()
 }
 
-// HangOut stops each handler manager goroutine (useful for testing).
+// SoftStop stops each handler manager goroutine (useful for testing).
 func (app *App) SoftStop() chan int {
 	c := make(chan int, 0)
 	go func() {
@@ -324,8 +329,23 @@ func (app *App) SoftStop() chan int {
 				log.Println("Closing ", name)
 			}
 			closer.closer <- 1
+
+			if debug {
+				log.Println("Closed ", name)
+			}
 		}
 		c <- 1
 	}()
 	return c
+}
+
+// GetRoute return the *mux.Route that have the given name.
+func (a *App) GetRoute(name string) *mux.Route {
+
+	for route, _ := range a.handlers {
+		if route.GetName() == name {
+			return route
+		}
+	}
+	return nil
 }
