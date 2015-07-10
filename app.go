@@ -242,6 +242,10 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error upgrading Websocket protocol", err)
 			return
 		}
+
+		defer req.OnClose()
+		req.OnConnect()
+
 		if _, ok := req.(WSServerHandler); ok {
 			serveWS(req)
 		} else if _, ok := req.(WSJsonHandler); ok {

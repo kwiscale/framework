@@ -7,28 +7,33 @@ import (
 )
 
 var (
+	// keep connection by path.
 	rooms = make(map[string]*wsroom, 0)
 )
 
 type wsroom struct {
-	conns map[*websocket.Conn]bool
+	// connections for the room
+	conns map[*WebSocketHandler]bool
 }
 
+// Returns the room named "path", or create one if not exists.
 func getRoom(path string) *wsroom {
 	if r, ok := rooms[path]; !ok {
 		r = new(wsroom)
-		r.conns = make(map[*websocket.Conn]bool)
+		r.conns = make(map[*WebSocketHandler]bool)
 		rooms[path] = r
 	}
 
 	return rooms[path]
 }
 
-func (room *wsroom) add(c *websocket.Conn) {
+// Add a websocket handler to the room.
+func (room *wsroom) add(c *WebSocketHandler) {
 	room.conns[c] = true
 }
 
-func (room *wsroom) remove(c *websocket.Conn) {
+// Remove a websocket handler from the room.
+func (room *wsroom) remove(c *WebSocketHandler) {
 	if _, ok := room.conns[c]; ok {
 		if debug {
 			log.Println("Remove websocket connection", c)
@@ -43,6 +48,7 @@ type IWSHandler interface {
 	// Serve is the method to implement inside the project
 	upgrade() error
 	OnConnect() error
+	OnClose() error
 	GetConnection() *websocket.Conn
 	Close()
 }
@@ -66,7 +72,7 @@ func (ws *WebSocketHandler) upgrade() error {
 		// record room and append connection
 		path := ws.Request.URL.Path
 		room := getRoom(path)
-		room.add(ws.conn)
+		room.add(ws)
 	}
 	return err
 }
@@ -76,7 +82,13 @@ func (ws *WebSocketHandler) GetConnection() *websocket.Conn {
 	return ws.conn
 }
 
+// OnConnect is called when a client connection is opened.
 func (ws *WebSocketHandler) OnConnect() error {
+	return nil
+}
+
+// OnClose is called when a client connection is closed.
+func (ws *WebSocketHandler) OnClose() error {
 	return nil
 }
 
@@ -84,20 +96,74 @@ func (ws *WebSocketHandler) Write(b []byte) error {
 	return ws.conn.WriteMessage(websocket.TextMessage, b)
 }
 
+// Alias to SendText
 func (ws *WebSocketHandler) WriteString(m string) error {
-	return ws.Write([]byte(m))
+	return ws.SendText(m)
 }
 
+// Alias for SendJSON
 func (ws *WebSocketHandler) WriteJSON(i interface{}) error {
+	return ws.SendJSON(i)
+}
+
+// SendJSON send interface "i" in json form to the current client.
+func (ws *WebSocketHandler) SendJSON(i interface{}) error {
 	return ws.conn.WriteJSON(i)
 }
 
+// SendText send string "s" to the current client.
+func (ws *WebSocketHandler) SendText(s string) error {
+	return ws.conn.WriteMessage(websocket.TextMessage, []byte(s))
+}
+
+// SendJSONToThisRoom send interface "i" in json form to the client connected
+// to the same room of the current client connection.
+func (ws *WebSocketHandler) SendJSONToThisRoom(i interface{}) {
+	ws.SendJSONToRoom(ws.Request.URL.Path, i)
+}
+
+// SendJSONToRoom send the interface "i" in json form to the client connected
+// to the the room named "name".
+func (ws *WebSocketHandler) SendJSONToRoom(room string, i interface{}) {
+	for w, _ := range rooms[room].conns {
+		w.SendJSON(i)
+	}
+}
+
+// SendJSONToAll send the interface "i" in json form to the entire
+// client list.
+func (ws *WebSocketHandler) SendJSONToAll(i interface{}) {
+	for name, _ := range rooms {
+		ws.SendJSONToRoom(name, i)
+	}
+}
+
+// SendTextToThisRoom send message s to the room of the
+// current client connection.
+func (ws *WebSocketHandler) SendTextToThisRoom(s string) {
+	ws.SendTextToRoom(ws.Request.URL.Path, s)
+}
+
+// SendTextToRoom send message "s" to the room named "name".
+func (ws *WebSocketHandler) SendTextToRoom(name, s string) {
+	for w, _ := range rooms[name].conns {
+		w.SendText(s)
+	}
+}
+
+// SendTextToAll send message "s" to the entire list of connected clients.
+func (ws *WebSocketHandler) SendTextToAll(s string) {
+	for name, _ := range rooms {
+		ws.SendTextToRoom(name, s)
+	}
+}
+
+// Close connection after having removed handler from the rooms stack.
 func (ws *WebSocketHandler) Close() {
 	defer ws.conn.Close()
 	if room, ok := rooms[ws.Request.URL.Path]; ok {
-		room.remove(ws.conn)
+		room.remove(ws)
 		if len(room.conns) == 0 {
-			log.Println("Room", ws.Request.URL.Path, "is empty, deleting")
 			delete(rooms, ws.Request.URL.Path)
 		}
 	}
@@ -111,7 +177,7 @@ type WSServerHandler interface {
 // If WebSocketHandler implements WSJsonHandler, framework will
 // read socket and call OnJSON each time a json message is received.
 type WSJsonHandler interface {
-	OnJSON(map[string]interface{}, error)
+	OnJSON(interface{}, error)
 }
 
 // if WebSocketHandler implements WSStringHandler, framework
@@ -125,16 +191,21 @@ func serveWS(w IWSHandler) {
 	w.(WSServerHandler).Serve()
 }
 
+// Serve JSON.
 func serveJSON(w IWSHandler) {
 	c := w.GetConnection()
 	defer w.Close()
 	for {
-		var i map[string]interface{}
-		err := c.ReadJSON(i)
+		var i interface{}
+		err := c.ReadJSON(&i)
 		w.(WSJsonHandler).OnJSON(i, err)
+		if err != nil {
+			return
+		}
 	}
 }
 
+// Serve string messages
 func serveString(w IWSHandler) {
 	c := w.GetConnection()
 	defer w.Close()
