@@ -4,6 +4,7 @@ package kwiscale
 import (
 	"log"
 	"net/http"
+	"path/filepath"
 	"reflect"
 
 	"github.com/gorilla/mux"
@@ -186,6 +187,8 @@ func (a *App) ListenAndServe(port ...string) {
 
 // SetStatic set the route "prefix" to serve files configured in Config.StaticDir
 func (a *App) SetStatic(prefix string) {
+	path, _ := filepath.Abs(prefix)
+	prefix = filepath.Base(path)
 	a.AddRoute("/"+prefix+"/{file:.*}", staticHandler{})
 }
 
@@ -239,7 +242,16 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error upgrading Websocket protocol", err)
 			return
 		}
-		req.Serve()
+		if _, ok := req.(WSServerHandler); ok {
+			serveWS(req)
+		} else if _, ok := req.(WSJsonHandler); ok {
+			serveJSON(req)
+		} else if _, ok := req.(WSStringHandler); ok {
+			serveString(req)
+		} else {
+			log.Println("ws handler has not implemented one of the method: OnJSON, OnString or Serve")
+			HandleError(http.StatusNotImplemented, w, r, nil)
+		}
 		return
 	}
 
