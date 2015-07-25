@@ -1,2 +1,8 @@
 *.swp
 *~
+docker
+mkdocs.yml
+.srclib-*
+.zedstate
+
+

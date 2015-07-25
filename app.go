@@ -2,10 +2,13 @@
 package kwiscale
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -34,17 +37,13 @@ func (manager handlerManager) produceHandlers() {
 	for {
 		select {
 		case manager.producer <- reflect.New(manager.handler).Interface():
-			if debug {
-				log.Println("Appended handler ", manager.handler.Name())
-			}
+			Log("Appended handler ", manager.handler.Name())
 		case <-manager.closer:
 			// Someone closed the factory
 			break
 		}
 	}
-	if debug {
-		log.Println("Quitting ", manager.handler.Name, "producer")
-	}
+	Log("Quitting ", manager.handler.Name, "producer")
 }
 
 // the full registry
@@ -75,13 +74,6 @@ type Config struct {
 
 	// StrictSlash allows to match route that have trailing slashes
 	StrictSlash bool
-
-	// DBDriver should be the name of a
-	// registered DB Driver (sqlite3, postgresql, mysql/mariadb...)
-	//DBDriver string
-
-	// DBURL is the connection path/url to the database
-	//DBURL string
 }
 
 // App handles router and handlers.
@@ -140,9 +132,7 @@ func NewApp(config *Config) *App {
 	// fill up config for non-set values
 	config = initConfig(config)
 
-	if debug {
-		log.Printf("%+v\n", config)
-	}
+	Log(fmt.Sprintf("%+v\n", config))
 
 	// generate app, assign config, router and handlers map
 	a := &App{
@@ -196,30 +186,19 @@ func (a *App) SetStatic(prefix string) {
 func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var req interface{}
-	for route, handler := range app.handlers {
-		var match mux.RouteMatch
-		if route.Match(r, &match) {
-			// construct handler from its name
-			if debug {
-				log.Printf("Route matches %#v\n", route)
-				log.Println("Handler to fetch", handler)
-			}
+	handler, route, match := getBestRoute(app, r)
 
-			// wait for a built handler from registry
-			req = <-handlerRegistry[handler].producer
+	if handler != "" {
+		// wait for a built handler from registry
+		req = <-handlerRegistry[handler].producer
 
-			if debug {
-				log.Print("Handler found ", req)
-			}
+		Log("Handler found ", req)
 
-			//assign some vars
-			req.(IBaseHandler).setRoute(route)
-			req.(IBaseHandler).setVars(match.Vars, w, r)
-			req.(IBaseHandler).setApp(app)
-			req.(IBaseHandler).setSessionStore(app.sessionstore)
-			break //that's ok, we can continue
-		}
-		// code hasn't breaked, so we didn't found handler
+		//assign some vars
+		req.(IBaseHandler).setRoute(route)
+		req.(IBaseHandler).setVars(match.Vars, w, r)
+		req.(IBaseHandler).setApp(app)
+		req.(IBaseHandler).setSessionStore(app.sessionstore)
 	}
 
 	if req, ok := req.(IBaseHandler); ok {
@@ -263,9 +242,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if req, ok := req.(IRequestHandler); ok {
 		// RequestHandler case
 		w.Header().Add("Connection", "close")
-		if debug {
-			log.Println("Respond to IRequestHandler", r.Method, req)
-		}
+		Log("Respond to IRequestHandler", r.Method, req)
 		if req == nil {
 			HandleError(http.StatusNotFound, w, r, nil)
 			return
@@ -293,20 +270,46 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		HandleError(http.StatusInternalServerError, w, r, nil)
-		if debug {
-			log.Printf("Registry: %+v\n", handlerRegistry)
-			log.Printf("RequestWriter: %+v\n", w)
-			log.Printf("Reponse: %+v", r)
-			log.Printf("KwiscaleHandler: %+v\n", req)
-		}
+		Log(fmt.Sprintf("Registry: %+v\n", handlerRegistry))
+		Log(fmt.Sprintf("RequestWriter: %+v\n", w))
+		Log(fmt.Sprintf("Reponse: %+v", r))
+		Log(fmt.Sprintf("KwiscaleHandler: %+v\n", req))
 	}
 }
 
 // AddRoute appends route mapped to handler. Note that rh parameter should
-// implement IRequestHandler (generally a struct composing RequestHandler).
+// implement IRequestHandler (generally a struct composing RequestHandler or WebSocketHandler).
 func (app *App) AddRoute(route string, handler interface{}) {
+	app.addRoute(route, handler)
+}
+
+// AddNamedRoute does the same as AddRoute but set the route name instead of
+// using the handler name. If the given name already exists or is empty, the method
+// panics.
+func (app *App) AddNamedRoute(route string, handler interface{}, name string) {
+	name = strings.TrimSpace(name)
+	if len(name) == 0 {
+		panic(errors.New("The given name is empty"))
+	}
+
+	for n, _ := range app.handlers {
+		if n.GetName() == name {
+			panic(errors.New("The given name already exists:" + name))
+		}
+	}
+
+	app.addRoute(route, handler, name)
+}
+
+// Add route to the stack
+func (app *App) addRoute(route string, handler interface{}, routename ...string) {
+	var name string
 	handlerType := reflect.TypeOf(handler)
-	name := handlerType.String()
+	if len(routename) == 0 {
+		name = handlerType.String()
+	} else {
+		name = routename[0]
+	}
 
 	// record a route
 	r := app.router.NewRoute()
@@ -314,15 +317,11 @@ func (app *App) AddRoute(route string, handler interface{}) {
 	r.Name(name)
 
 	app.handlers[r] = name
-	if debug {
-		log.Print("Register ", name)
-	}
+	Log("Register ", name)
 
 	if _, ok := handlerRegistry[name]; ok {
 		// do not create registry manager if it exists
-		if debug {
-			log.Println("Registry manager for", name, "already exists")
-		}
+		Log("Registry manager for", name, "already exists")
 		return
 	}
 	// register factory channel
@@ -341,14 +340,9 @@ func (app *App) SoftStop() chan int {
 	c := make(chan int, 0)
 	go func() {
 		for name, closer := range handlerRegistry {
-			if debug {
-				log.Println("Closing ", name)
-			}
+			Log("Closing ", name)
 			closer.closer <- 1
-
-			if debug {
-				log.Println("Closed ", name)
-			}
+			Log("Closed ", name)
 		}
 		c <- 1
 	}()

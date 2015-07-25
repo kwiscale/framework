@@ -8,15 +8,34 @@ import (
 	"testing"
 )
 
-type TestHandler struct{ RequestHandler }
+// Let each handler to get "*testing.T"
+var T = make(map[*App]*testing.T)
+
+// A test handler (simple).
+type TestHandler struct {
+	RequestHandler
+}
 
 func (th *TestHandler) Get() {
 	th.WriteString("Hello")
 }
 
+// Handler to test reversed route.
 type TestReverseRoute struct{ RequestHandler }
 
 func (th *TestReverseRoute) Get() {
+	// Test to get route from app
+	app := th.GetApp()
+	t := T[app]
+
+	u, err := app.GetRoute("kwiscale.TestReverseRoute").URL("category", "test")
+	if err != nil {
+		t.Error("Route from app returns error:", err)
+	}
+	if u.String() != "/product/test" {
+		t.Error("Route from app is not /product/test: ", u)
+	}
+
 	route, err := th.GetURL("category", "foo")
 	if err != nil {
 		fmt.Println(err)
@@ -24,19 +43,22 @@ func (th *TestReverseRoute) Get() {
 	th.WriteString(route.String())
 }
 
+// Create app.
 func initApp(t *testing.T) *App {
 	conf := &Config{}
 	app := NewApp(conf)
+	T[app] = t
 	return app
 }
 
+// Test the app "soft close".
 func TestCloser(t *testing.T) {
 	app := initApp(t)
 	app.AddRoute("/foo", TestHandler{})
 	<-app.SoftStop()
 }
 
-// TestSimpleRequest should respond whit 200 and print "hello"
+// TestSimpleRequest should respond whit 200 and print "hello".
 func TestSimpleRequest(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://example.com/foo", nil)
 	w := httptest.NewRecorder()
@@ -56,7 +78,7 @@ func TestSimpleRequest(t *testing.T) {
 	<-app.SoftStop()
 }
 
-// Try to call a bad route
+// Try to call a bad route.
 func TestBadRequest(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://example.com/bad", nil)
 	w := httptest.NewRecorder()
@@ -71,6 +93,7 @@ func TestBadRequest(t *testing.T) {
 	<-app.SoftStop()
 }
 
+// Test the reverse route to get url.
 func TestRouteReverse(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://example.com/product/test", nil)
 	w := httptest.NewRecorder()
@@ -87,12 +110,10 @@ func TestRouteReverse(t *testing.T) {
 	<-app.SoftStop()
 }
 
+// Test to get reverse route from app.
 func TestReverseURLFromApp(t *testing.T) {
 	app := initApp(t)
 	app.AddRoute("/product/{category:.+}", TestReverseRoute{})
-	r, _ := http.NewRequest("GET", "http://example.com/product/test", nil)
-	w := httptest.NewRecorder()
-	app.ServeHTTP(w, r)
 
 	u, err := app.GetRoute("kwiscale.TestReverseRoute").URL("category", "second")
 	if err != nil {

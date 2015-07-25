@@ -25,6 +25,7 @@ func SetDebug(mode bool) {
 type IBaseHandler interface {
 	setVars(map[string]string, http.ResponseWriter, *http.Request)
 	setApp(*App)
+	GetApp() *App
 	setRoute(*mux.Route)
 	getRequest() *http.Request
 	getResponse() http.ResponseWriter
@@ -158,4 +159,9 @@ func (b *BaseHandler) SavePostFile(name, to string) error {
 // GetURL return an url based on the declared route and given string pair.
 func (b *BaseHandler) GetURL(s ...string) (*url.URL, error) {
 	return b.route.URL(s...)
+}
+
+// GetApp returns the app that holds this handler.
+func (b *BaseHandler) GetApp() *App {
+	return b.app
 }

@@ -1,10 +1,6 @@
 package kwiscale
 
-import (
-	"log"
-
-	"github.com/gorilla/websocket"
-)
+import "github.com/gorilla/websocket"
 
 var (
 	// keep connection by path.
@@ -35,9 +31,7 @@ func (room *wsroom) add(c *WebSocketHandler) {
 // Remove a websocket handler from the room.
 func (room *wsroom) remove(c *WebSocketHandler) {
 	if _, ok := room.conns[c]; ok {
-		if debug {
-			log.Println("Remove websocket connection", c)
-		}
+		Log("Remove websocket connection", c)
 		delete(room.conns, c)
 	}
 }

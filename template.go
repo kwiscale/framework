@@ -47,9 +47,7 @@ func (tpl *Template) SetTemplateDir(path string) {
 		log.Fatalln("Path not ok", err)
 	}
 	tpl.tpldir = t
-	if debug {
-		log.Println("Template dir set to ", tpl.tpldir)
-	}
+	Log("Template dir set to ", tpl.tpldir)
 }
 
 // Render method for the basic Template system.
@@ -62,9 +60,7 @@ func (tpl *Template) Render(w io.Writer, file string, ctx interface{}) error {
 	content, err := ioutil.ReadFile(file)
 
 	if err != nil {
-		if debug {
-			log.Println(err)
-		}
+		Log(err)
 		return err
 	}
 
@@ -72,15 +68,11 @@ func (tpl *Template) Render(w io.Writer, file string, ctx interface{}) error {
 
 	tpl.files = append(tpl.files, file)
 
-	if debug {
-		log.Println(tpl.files)
-	}
+	Log(tpl.files)
 
 	t, err := template.ParseFiles(tpl.files...)
 	if err != nil {
-		if debug {
-			log.Println(err)
-		}
+		Log(err)
 		return err
 	}
 
