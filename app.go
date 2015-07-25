@@ -203,7 +203,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if req, ok := req.(IBaseHandler); ok {
 		// Call Init before starting response
-		if err, code := req.Init(); err != nil {
+		if code, err := req.Init(); err != nil {
 			// Init stops the request with error
 			HandleError(code, req.getResponse(), req.getRequest(), err)
 			return
