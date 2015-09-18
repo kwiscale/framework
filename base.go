@@ -29,6 +29,9 @@ type IBaseHandler interface {
 	setRoute(*mux.Route)
 	getRequest() *http.Request
 	getResponse() http.ResponseWriter
+
+	GetRequest() *http.Request
+	GetResponse() http.ResponseWriter
 	GetSession(interface{}) (interface{}, error)
 	SetSession(interface{}, interface{})
 
@@ -83,6 +86,16 @@ func (r *BaseHandler) getResponse() http.ResponseWriter {
 // getRequest returns the current request.
 func (b *BaseHandler) getRequest() *http.Request {
 	return b.Request
+}
+
+// getReponse returns the current response.
+func (r *BaseHandler) GetResponse() http.ResponseWriter {
+	return r.getResponse()
+}
+
+// getRequest returns the current request.
+func (b *BaseHandler) GetRequest() *http.Request {
+	return b.getRequest()
 }
 
 // SetSessionStore defines the session store to use.
