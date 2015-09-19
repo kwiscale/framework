@@ -61,12 +61,18 @@ type Config struct {
 	TemplateEngine string
 	// Template engine options (some addons need options)
 	TemplateEngineOptions TplOptions
+	// Configuration for template engine
+	TemplateEngineConfig map[string]interface{}
+
 	// SessionEngine (default is a file storage)
 	SessionsEngine string
 	// SessionName is the name of session, eg. Cookie name, default is "kwiscale-session"
 	SessionName string
 	// A secret string to encrypt cookie
 	SessionSecret []byte
+	// Configuration for SessionEngine
+	SessionEngineConfig map[string]interface{}
+
 	// Static directory (to put css, images, and so on...)
 	StaticDir string
 	// Activate static in memory cache
@@ -113,6 +119,10 @@ func initConfig(config *Config) *Config {
 		config.TemplateEngine = "basic"
 	}
 
+	if config.TemplateEngineConfig == nil {
+		config.TemplateEngineConfig = make(map[string]interface{})
+	}
+
 	if config.SessionsEngine == "" {
 		config.SessionsEngine = "default"
 	}
@@ -121,6 +131,9 @@ func initConfig(config *Config) *Config {
 	}
 	if config.SessionSecret == nil {
 		config.SessionSecret = []byte("A very long secret string you should change")
+	}
+	if config.SessionEngineConfig == nil {
+		config.SessionEngineConfig = make(map[string]interface{})
 	}
 
 	return config
@@ -151,7 +164,7 @@ func NewApp(config *Config) *App {
 	a.sessionstore = sessionEngine[config.SessionsEngine]
 	a.sessionstore.Name(config.SessionName)
 	a.sessionstore.SetSecret(config.SessionSecret)
-	a.sessionstore.Init()
+	a.sessionstore.Init(config)
 
 	if config.StaticDir != "" {
 		a.SetStatic(config.StaticDir)

@@ -2,8 +2,9 @@ package kwiscale
 
 import (
 	"errors"
-	"github.com/gorilla/sessions"
 	"log"
+
+	"github.com/gorilla/sessions"
 )
 
 var sessionEngine = make(map[string]ISessionStore, 0)
@@ -17,7 +18,7 @@ func RegisterSessionEngine(name string, engine ISessionStore) {
 // ISessionStore to implement to give a session storage
 type ISessionStore interface {
 	// Init is called when store is initialized while App is initialized
-	Init()
+	Init(*Config)
 
 	// Name should set the session name
 	Name(string)
@@ -45,7 +46,7 @@ type SessionStore struct {
 }
 
 // Init prepare the cookie storage.
-func (s *SessionStore) Init() {
+func (s *SessionStore) Init(*Config) {
 	s.store = sessions.NewCookieStore(s.secret)
 }
 
