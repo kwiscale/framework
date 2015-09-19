@@ -61,8 +61,6 @@ type Config struct {
 	TemplateEngine string
 	// Template engine options (some addons need options)
 	TemplateEngineOptions TplOptions
-	// Configuration for template engine
-	TemplateEngineConfig map[string]interface{}
 
 	// SessionEngine (default is a file storage)
 	SessionsEngine string
@@ -119,8 +117,8 @@ func initConfig(config *Config) *Config {
 		config.TemplateEngine = "basic"
 	}
 
-	if config.TemplateEngineConfig == nil {
-		config.TemplateEngineConfig = make(map[string]interface{})
+	if config.TemplateEngineOptions == nil {
+		config.TemplateEngineOptions = make(TplOptions)
 	}
 
 	if config.SessionsEngine == "" {
@@ -133,7 +131,7 @@ func initConfig(config *Config) *Config {
 		config.SessionSecret = []byte("A very long secret string you should change")
 	}
 	if config.SessionEngineOptions == nil {
-		config.SessionEngineOptions = make(map[string]interface{})
+		config.SessionEngineOptions = make(SessionEngineOptions)
 	}
 
 	return config
