@@ -156,13 +156,13 @@ func NewApp(config *Config) *App {
 	}
 
 	a.templateEngine.SetTemplateDir(config.TemplateDir)
-	a.templateEngine.SetTemplateOptions(&config.TemplateEngineOptions)
+	a.templateEngine.SetTemplateOptions(config.TemplateEngineOptions)
 
 	// set sessstion store
 	a.sessionstore = sessionEngine[config.SessionsEngine]
 	a.sessionstore.Name(config.SessionName)
 	a.sessionstore.SetSecret(config.SessionSecret)
-	a.sessionstore.SetOptions(&config.SessionEngineOptions)
+	a.sessionstore.SetOptions(config.SessionEngineOptions)
 	a.sessionstore.Init()
 
 	if config.StaticDir != "" {

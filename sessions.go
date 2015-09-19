@@ -26,7 +26,7 @@ type ISessionStore interface {
 	Name(string)
 
 	// SetOptions set some optionnal values to session engine
-	SetOptions(*SessionEngineOptions)
+	SetOptions(SessionEngineOptions)
 
 	// SetSecret should register a string to encode cookie (not mandatory
 	// but you should implement this to respect interface)
@@ -66,7 +66,7 @@ func (s *SessionStore) Name(name string) {
 }
 
 // SetOptions does nothing for the engine
-func (*SessionStore) SetOptions(*SessionEngineOptions) {}
+func (*SessionStore) SetOptions(SessionEngineOptions) {}
 
 // Get a value from session by name.
 func (s *SessionStore) Get(handler IBaseHandler, key interface{}) (interface{}, error) {

@@ -31,7 +31,7 @@ type ITemplate interface {
 	SetTemplateDir(string)
 
 	// SetOptions pass TplOptions to template engine
-	SetTemplateOptions(*TplOptions)
+	SetTemplateOptions(TplOptions)
 }
 
 // Basic template engine that use html/template
@@ -80,7 +80,7 @@ func (tpl *Template) Render(w io.Writer, file string, ctx interface{}) error {
 }
 
 // Template is basic, it doesn't need options
-func (tpl *Template) SetTemplateOptions(opt *TplOptions) {}
+func (tpl *Template) SetTemplateOptions(TplOptions) {}
 
 // parseOverride will append overriden templates to be integrating in the
 // template list to render
