@@ -9,6 +9,8 @@ import (
 
 var sessionEngine = make(map[string]ISessionStore, 0)
 
+type SessionEngineOptions map[string]interface{}
+
 // RegisterSessionEngine can register session engine that implements
 // ISessionStore. The name is used to let configuration to select it.
 func RegisterSessionEngine(name string, engine ISessionStore) {
@@ -18,10 +20,13 @@ func RegisterSessionEngine(name string, engine ISessionStore) {
 // ISessionStore to implement to give a session storage
 type ISessionStore interface {
 	// Init is called when store is initialized while App is initialized
-	Init(*Config)
+	Init()
 
 	// Name should set the session name
 	Name(string)
+
+	// SetOptions set some optionnal values to session engine
+	SetOptions(*SessionEngineOptions)
 
 	// SetSecret should register a string to encode cookie (not mandatory
 	// but you should implement this to respect interface)
@@ -46,7 +51,7 @@ type SessionStore struct {
 }
 
 // Init prepare the cookie storage.
-func (s *SessionStore) Init(*Config) {
+func (s *SessionStore) Init() {
 	s.store = sessions.NewCookieStore(s.secret)
 }
 
@@ -59,6 +64,9 @@ func (s *SessionStore) SetSecret(secret []byte) {
 func (s *SessionStore) Name(name string) {
 	s.name = name
 }
+
+// SetOptions does nothing for the engine
+func (*SessionStore) SetOptions(*SessionEngineOptions) {}
 
 // Get a value from session by name.
 func (s *SessionStore) Get(handler IBaseHandler, key interface{}) (interface{}, error) {

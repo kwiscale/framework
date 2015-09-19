@@ -71,7 +71,7 @@ type Config struct {
 	// A secret string to encrypt cookie
 	SessionSecret []byte
 	// Configuration for SessionEngine
-	SessionEngineConfig map[string]interface{}
+	SessionEngineOptions SessionEngineOptions
 
 	// Static directory (to put css, images, and so on...)
 	StaticDir string
@@ -132,8 +132,8 @@ func initConfig(config *Config) *Config {
 	if config.SessionSecret == nil {
 		config.SessionSecret = []byte("A very long secret string you should change")
 	}
-	if config.SessionEngineConfig == nil {
-		config.SessionEngineConfig = make(map[string]interface{})
+	if config.SessionEngineOptions == nil {
+		config.SessionEngineOptions = make(map[string]interface{})
 	}
 
 	return config
@@ -164,7 +164,8 @@ func NewApp(config *Config) *App {
 	a.sessionstore = sessionEngine[config.SessionsEngine]
 	a.sessionstore.Name(config.SessionName)
 	a.sessionstore.SetSecret(config.SessionSecret)
-	a.sessionstore.Init(config)
+	a.sessionstore.SetOptions(&config.SessionEngineOptions)
+	a.sessionstore.Init()
 
 	if config.StaticDir != "" {
 		a.SetStatic(config.StaticDir)
