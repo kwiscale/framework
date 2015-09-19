@@ -63,7 +63,7 @@ type Config struct {
 	TemplateEngineOptions TplOptions
 
 	// SessionEngine (default is a file storage)
-	SessionsEngine string
+	SessionEngine string
 	// SessionName is the name of session, eg. Cookie name, default is "kwiscale-session"
 	SessionName string
 	// A secret string to encrypt cookie
@@ -121,8 +121,8 @@ func initConfig(config *Config) *Config {
 		config.TemplateEngineOptions = make(TplOptions)
 	}
 
-	if config.SessionsEngine == "" {
-		config.SessionsEngine = "default"
+	if config.SessionEngine == "" {
+		config.SessionEngine = "default"
 	}
 	if config.SessionName == "" {
 		config.SessionName = "kwiscale-session"
@@ -159,7 +159,7 @@ func NewApp(config *Config) *App {
 	a.templateEngine.SetTemplateOptions(config.TemplateEngineOptions)
 
 	// set sessstion store
-	a.sessionstore = sessionEngine[config.SessionsEngine]
+	a.sessionstore = sessionEngine[config.SessionEngine]
 	a.sessionstore.Name(config.SessionName)
 	a.sessionstore.SetSecret(config.SessionSecret)
 	a.sessionstore.SetOptions(config.SessionEngineOptions)
