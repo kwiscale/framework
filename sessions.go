@@ -74,7 +74,7 @@ func (s *SessionStore) Get(handler IBaseHandler, key interface{}) (interface{}, 
 	if err != nil {
 		return nil, err
 	}
-	log.Print("Getting session", key, session.Values[key])
+	Log("Getting session", key, session.Values[key])
 	if session.Values[key] == nil {
 		return nil, errors.New("empty session")
 	}
@@ -83,14 +83,13 @@ func (s *SessionStore) Get(handler IBaseHandler, key interface{}) (interface{}, 
 
 // Set a named value in sessionstore.
 func (s *SessionStore) Set(handler IBaseHandler, key interface{}, val interface{}) {
-	log.Print("Writing session", key, val)
+	Log("Writing session", key, val)
 	session, _ := s.store.Get(handler.getRequest(), s.name)
 	session.Values[key] = val
 	session.Save(handler.getRequest(), handler.getResponse())
 }
 
 func (s *SessionStore) Clean(handler IBaseHandler) {
-
 	session, _ := s.store.Get(handler.getRequest(), s.name)
 	session.Values = make(map[interface{}]interface{})
 	session.Save(handler.getRequest(), handler.getResponse())
