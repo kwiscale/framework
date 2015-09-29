@@ -38,7 +38,7 @@ func (room *wsroom) remove(c *WebSocketHandler) {
 
 // IWSHander is the base template to implement to be able to use
 // Websocket
-type IWSHandler interface {
+type WSHandler interface {
 	// Serve is the method to implement inside the project
 	upgrade() error
 	OnConnect() error
@@ -180,13 +180,13 @@ type WSStringHandler interface {
 	OnMessage(int, string, error)
 }
 
-func serveWS(w IWSHandler) {
+func serveWS(w WSHandler) {
 	defer w.Close()
 	w.(WSServerHandler).Serve()
 }
 
 // Serve JSON.
-func serveJSON(w IWSHandler) {
+func serveJSON(w WSHandler) {
 	c := w.GetConnection()
 	defer w.Close()
 	for {
@@ -200,7 +200,7 @@ func serveJSON(w IWSHandler) {
 }
 
 // Serve string messages
-func serveString(w IWSHandler) {
+func serveString(w WSHandler) {
 	c := w.GetConnection()
 	defer w.Close()
 	for {

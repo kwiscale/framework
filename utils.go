@@ -14,6 +14,11 @@ func Log(v ...interface{}) {
 	}
 }
 
+func Error(v ...interface{}) {
+	log.Print("[ERROR] ")
+	log.Println(v...)
+}
+
 // getMatchRoute returns the better handler that matched request url.
 // It returne handlername, mux.Route and mux.RouteMatch.
 func getBestRoute(app *App, r *http.Request) (string, *mux.Route, mux.RouteMatch) {

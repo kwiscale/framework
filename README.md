@@ -192,3 +192,12 @@ app := kwiscale.NewApp(&kswiscale.Config{
 })
 
 ```
+
+
+TODO
+====
+
+Features in progress:
+
+- [ ] Database ORM interface
+- [ ] Custom Error handler

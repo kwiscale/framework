@@ -1,4 +1,3 @@
-// +build !race
 package kwiscale
 
 import (
@@ -26,9 +25,7 @@ type handlerManager struct {
 	producer chan interface{}
 }
 
-type HandlerFactory func() IBaseHandler
-
-// handlerFactory continuously generates new handlers in registry.
+// produceHandlers continuously generates new handlers in registry.
 // It launches a goroutine to produce those handlers. The number of
 // handlers to generate in cache is set by Config.NbHandlerCache.
 // Return a chanel to write in to close handler production
@@ -78,6 +75,10 @@ type Config struct {
 
 	// StrictSlash allows to match route that have trailing slashes
 	StrictSlash bool
+
+	// Datastrore
+	DB        string
+	DBOptions DBOptions
 }
 
 // App handles router and handlers.
@@ -87,16 +88,18 @@ type App struct {
 	Config *Config
 
 	// session store
-	sessionstore ISessionStore
+	sessionstore SessionStore
 
 	// Template engine instance.
-	templateEngine ITemplate
+	templateEngine Template
 
 	// The router that will be used
 	router *mux.Router
 
 	// List of handler "names" mapped to route (will be create by a factory)
 	handlers map[*mux.Route]string
+
+	database DB
 }
 
 // Initialize config default values if some are not defined
@@ -165,6 +168,14 @@ func NewApp(config *Config) *App {
 	a.sessionstore.SetOptions(config.SessionEngineOptions)
 	a.sessionstore.Init()
 
+	// set Datastore
+	if config.DB != "" {
+		a.database = dbdrivers[config.DB]
+		a.database.SetOptions(config.DBOptions)
+		a.database.Init()
+
+	}
+
 	if config.StaticDir != "" {
 		a.SetStatic(config.StaticDir)
 	}
@@ -207,28 +218,37 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Log("Handler found ", req)
 
 		//assign some vars
-		req.(IBaseHandler).setRoute(route)
-		req.(IBaseHandler).setVars(match.Vars, w, r)
-		req.(IBaseHandler).setApp(app)
-		req.(IBaseHandler).setSessionStore(app.sessionstore)
+		req.(WebHandler).setRoute(route)
+		req.(WebHandler).setVars(match.Vars, w, r)
+		req.(WebHandler).setApp(app)
+		req.(WebHandler).setSessionStore(app.sessionstore)
 	}
 
-	if req, ok := req.(IBaseHandler); ok {
+	if req, ok := req.(WebHandler); ok {
 		// Call Init before starting response
 		if code, err := req.Init(); err != nil {
-			// Init stops the request with error
+			Log(err)
+			// if returned status is <0, let Init() method do the work
+			if code < 0 {
+				Log("Init method returns no error but a status < 0")
+				return
+			}
+			// Else
+			// Init() stops the request with error with a status code to use
 			HandleError(code, req.getResponse(), req.getRequest(), err)
 			return
 		}
-		// Prepare defered destroy
+		// No stop, so we can
+		// prepare defered destroy
 		defer req.Destroy()
 	} else {
+		// Handler is not an handler...
 		HandleError(http.StatusNotFound, w, r, nil)
 		return
 	}
 
 	// Websocket case
-	if req, ok := req.(IWSHandler); ok {
+	if req, ok := req.(WSHandler); ok {
 		if err := req.upgrade(); err != nil {
 			log.Println("Error upgrading Websocket protocol", err)
 			return
@@ -251,7 +271,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Standard Request
-	if req, ok := req.(IRequestHandler); ok {
+	if req, ok := req.(HTTPRequestHandler); ok {
 		// RequestHandler case
 		w.Header().Add("Connection", "close")
 		Log("Respond to IRequestHandler", r.Method, req)
@@ -280,13 +300,14 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 			HandleError(http.StatusNotImplemented, w, r, nil)
 		}
-	} else {
-		HandleError(http.StatusInternalServerError, w, r, nil)
-		Log(fmt.Sprintf("Registry: %+v\n", handlerRegistry))
-		Log(fmt.Sprintf("RequestWriter: %+v\n", w))
-		Log(fmt.Sprintf("Reponse: %+v", r))
-		Log(fmt.Sprintf("KwiscaleHandler: %+v\n", req))
+		return
 	}
+
+	HandleError(http.StatusInternalServerError, w, r, nil)
+	Log(fmt.Sprintf("Registry: %+v\n", handlerRegistry))
+	Log(fmt.Sprintf("RequestWriter: %+v\n", w))
+	Log(fmt.Sprintf("Reponse: %+v", r))
+	Log(fmt.Sprintf("KwiscaleHandler: %+v\n", req))
 }
 
 // AddRoute appends route mapped to handler. Note that rh parameter should
@@ -370,4 +391,9 @@ func (a *App) GetRoute(name string) *mux.Route {
 		}
 	}
 	return nil
+}
+
+// DB returns the App.database configured from Config.
+func (app *App) DB() DB {
+	return app.database
 }

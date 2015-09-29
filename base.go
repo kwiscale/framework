@@ -20,9 +20,9 @@ func SetDebug(mode bool) {
 	debug = mode
 }
 
-// IBaseHandler is the main handler interface that every handler sould
+// WebHandler is the main handler interface that every handler sould
 // implement.
-type IBaseHandler interface {
+type WebHandler interface {
 	setVars(map[string]string, http.ResponseWriter, *http.Request)
 	setApp(*App)
 	GetApp() *App
@@ -35,7 +35,7 @@ type IBaseHandler interface {
 	GetSession(interface{}) (interface{}, error)
 	SetSession(interface{}, interface{})
 
-	setSessionStore(ISessionStore)
+	setSessionStore(SessionStore)
 	Init() (status int, message error)
 	Destroy()
 	GetURL(...string) (*url.URL, error)
@@ -46,7 +46,7 @@ type BaseHandler struct {
 	Response     http.ResponseWriter
 	Request      *http.Request
 	Vars         map[string]string
-	sessionStore ISessionStore
+	sessionStore SessionStore
 
 	route *mux.Route
 	app   *App
@@ -99,7 +99,7 @@ func (b *BaseHandler) GetRequest() *http.Request {
 }
 
 // SetSessionStore defines the session store to use.
-func (b *BaseHandler) setSessionStore(store ISessionStore) {
+func (b *BaseHandler) setSessionStore(store SessionStore) {
 	b.sessionStore = store
 }
 

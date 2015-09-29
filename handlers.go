@@ -7,8 +7,8 @@ import (
 	"net/http"
 )
 
-// IRequestHandler interface which declare HTTP verbs.
-type IRequestHandler interface {
+// HTTPRequestHandler interface which declare HTTP verbs.
+type HTTPRequestHandler interface {
 	Get()
 	Post()
 	Put()
