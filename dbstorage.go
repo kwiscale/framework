@@ -19,6 +19,11 @@ func RegisterDatastore(name string, ds DB) {
 	dbdrivers[name] = ds
 }
 
+type DBModelable interface {
+	OnCreate()
+	OnUpdate()
+}
+
 type DBModel struct {
 	ID        int64
 	CreatedAt time.Time
@@ -35,11 +40,14 @@ func (model *DBModel) OnUpdate() {
 
 type DBOptions map[string]interface{}
 
+type Q map[string]interface{}
+
 type DB interface {
 	SetOptions(DBOptions)
 	Init()
 	Insert(what interface{}) error
-	Get(where map[string]interface{}) DBQuery
+	Get(id, result interface{})
+	Find(query Q) DBQuery
 	Update(where map[string]interface{}, what interface{}) error
 	Delete(what interface{}) error
 	Close()

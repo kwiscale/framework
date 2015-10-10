@@ -1,16 +1,104 @@
 package kwiscale
 
-// Manage error handling
-// TODO: allow user to define error pages
+import (
+	"errors"
+	"fmt"
+	"text/template"
+)
 
-import "net/http"
+var (
+	ErrNotFound       = errors.New("Not found")
+	ErrNotImplemented = errors.New("Not implemented")
+	ErrInternalError  = errors.New("Internal server error")
+)
 
-// HandleError write error code in header + message
-func HandleError(code int, response http.ResponseWriter, req *http.Request, err error) {
-	Log(code, response, req, err)
-	errstring := ""
+// HTTPErrorHandler interface.
+type HTTPErrorHandler interface {
+	// Error returns the error.
+	GetError() error
+	// Details returns some detail inteface.
+	Details() interface{}
+	// Status returns the http status code.
+	Status() int
+
+	setStatus(int)
+	setError(error)
+	setDetails(interface{})
+}
+
+// ErrorHandler is a basic error handler that
+// displays error in a basic webpage.
+type ErrorHandler struct {
+	HTTPErrorHandler
+	RequestHandler
+	status  int
+	err     error
+	details interface{}
+}
+
+func (dh *ErrorHandler) setStatus(s int) {
+	dh.status = s
+}
+
+func (dh *ErrorHandler) setError(err error) {
+	dh.err = err
+}
+
+func (dh *ErrorHandler) setDetails(d interface{}) {
+	dh.details = d
+}
+
+// GetError returns error that was set by handlers.
+func (dh *ErrorHandler) GetError() error {
+	return dh.err
+}
+
+// Details returns details or nil if none.
+func (dh *ErrorHandler) Details() interface{} {
+	return dh.details
+}
+
+// Status returns the error HTTP Status set by handlers.
+func (dh *ErrorHandler) Status() int {
+	return dh.status
+}
+
+// Get shows a standard error in HTML.
+func (dh *ErrorHandler) Get() {
+
+	tpl := `<!doctype html>
+<html>
+	<head>
+		<title>{{.Status}} Error</title>
+		<style>
+			html, body {
+				font-family: Sans, sans-serif;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>{{ .Status}} Error</h1>
+		<p>
+			{{ .Error }}
+		</P>
+		<pre>
+		{{ range .Details }}
+{{ . }}
+		{{ end }}
+		</pre>
+	</body>
+</html>`
+
+	t, err := template.New("error").Parse(tpl)
 	if err != nil {
-		errstring = err.Error()
+		fmt.Println(err)
+		return
 	}
-	http.Error(response, errstring, code)
+
+	dh.GetResponse().WriteHeader(dh.Status())
+	t.Execute(dh.GetResponse(), map[string]interface{}{
+		"Status":  dh.Status(),
+		"Error":   dh.GetError(),
+		"Details": dh.Details(),
+	})
 }

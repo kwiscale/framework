@@ -36,8 +36,8 @@ func (room *wsroom) remove(c *WebSocketHandler) {
 	}
 }
 
-// IWSHander is the base template to implement to be able to use
-// Websocket
+// WSHander is the base interface to implement to be able to use
+// Websocket.
 type WSHandler interface {
 	// Serve is the method to implement inside the project
 	upgrade() error
@@ -47,7 +47,28 @@ type WSHandler interface {
 	Close()
 }
 
-// WebsockerHandler type
+// WebsockerHandler type to compose a web socket handler.
+// To use it, compose a handler with this type and implement one of
+// OnJSON(), OnMessage() or Serve() method.
+// Example:
+//
+//	type Example_WebSocketHandler struct{ WebSocketHandler }
+//
+//	func (m *Example_WebSocketHandler) OnJSON(i interface{}, err error) {
+//		if err != nil {
+//			m.SendJSON(map[string]string{
+//				"error": err.Error(),
+//			})
+//			return
+//		}
+//
+//		m.SendJSON(map[string]interface{}{
+//			"greeting": "Hello !",
+//			"data":     i,
+//		})
+//	}
+//
+// Previous example send back the message + a greeting message
 type WebSocketHandler struct {
 	BaseHandler
 	conn *websocket.Conn

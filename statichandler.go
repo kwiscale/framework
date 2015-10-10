@@ -1,6 +1,7 @@
 package kwiscale
 
 import (
+	"fmt"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -34,7 +35,7 @@ func (s *staticHandler) Get() {
 	if content == nil {
 		content, err = ioutil.ReadFile(file)
 		if err != nil {
-			HandleError(http.StatusNotFound, s.getResponse(), s.getRequest(), err)
+			s.GetApp().Error(http.StatusNotFound, s.getResponse(), err)
 			return
 		}
 		// save in cache after all
@@ -43,5 +44,6 @@ func (s *staticHandler) Get() {
 
 	mimetype := mime.TypeByExtension(filepath.Ext(file))
 	s.Response.Header().Add("Content-Type", mimetype)
+	s.Response.Header().Add("Content-Length", fmt.Sprintf("%d", len(content)))
 	s.Write(content)
 }

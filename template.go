@@ -1,6 +1,7 @@
 package kwiscale
 
 import (
+	"fmt"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -24,8 +25,8 @@ func RegisterTemplateEngine(name string, t Template) {
 // allow RequestHandlers to use Render() method
 type Template interface {
 	// Render method to implement to compile and run template
-	// then write to ReponseWriter.
-	Render(io.Writer, string, interface{}) error
+	// then write to RequestHandler "w" that is a io.Writer.
+	Render(w io.Writer, template string, ctx interface{}) error
 
 	// SetTemplateDir should set the template base directory
 	SetTemplateDir(string)
@@ -75,7 +76,37 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 
 	Log(tpl.files)
 
-	t, err := template.ParseFiles(tpl.files...)
+	funcmap := template.FuncMap{
+		"static": func(file string) string {
+			app := w.(WebHandler).GetApp()
+			url, err := app.GetRoute("statics").URL("file", file)
+			if err != nil {
+				return err.Error()
+			}
+			return url.String()
+		},
+		"url": func(handler string, args ...interface{}) string {
+			pairs := make([]string, 0)
+			for _, p := range args {
+				pairs = append(pairs, fmt.Sprintf("%v", p))
+			}
+			h := w.(WebHandler).GetApp().GetRoute(handler)
+			if h == nil {
+				return handler + " handler not found"
+			}
+			url, err := h.URL(pairs...)
+			if err != nil {
+				return err.Error()
+			}
+			return url.String()
+		},
+	}
+
+	t, err := template.
+		New(filepath.Base(file)).
+		Funcs(funcmap).
+		ParseFiles(tpl.files...)
+
 	if err != nil {
 		return err
 	}

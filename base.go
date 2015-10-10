@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -25,7 +26,8 @@ func SetDebug(mode bool) {
 type WebHandler interface {
 	setVars(map[string]string, http.ResponseWriter, *http.Request)
 	setApp(*App)
-	GetApp() *App
+	GetApp() *App //deprecated
+	App() *App
 	setRoute(*mux.Route)
 	getRequest() *http.Request
 	getResponse() http.ResponseWriter
@@ -42,6 +44,7 @@ type WebHandler interface {
 }
 
 // BaseHandler is the parent struct of every Handler.
+// Implement WebHandler.
 type BaseHandler struct {
 	Response     http.ResponseWriter
 	Request      *http.Request
@@ -174,7 +177,15 @@ func (b *BaseHandler) GetURL(s ...string) (*url.URL, error) {
 	return b.route.URL(s...)
 }
 
+// App() returns the current application.
+func (b *BaseHandler) App() *App {
+	return b.app
+}
+
+// DEPRECATED
+//
 // GetApp returns the app that holds this handler.
 func (b *BaseHandler) GetApp() *App {
-	return b.app
+	log.Println("[WARN] GetAp() is deprecated, please use App() method instead.")
+	return b.App()
 }

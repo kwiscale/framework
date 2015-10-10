@@ -4,6 +4,7 @@ package kwiscale
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 )
 
@@ -20,60 +21,57 @@ type HTTPRequestHandler interface {
 	Redirect(url string)
 	RedirectWithStatus(url string, httpStatus int)
 	GlobalCtx() map[string]interface{}
+	Error(status int, message string, details ...interface{})
 }
 
 // RequestHandler that should be composed by users.
 type RequestHandler struct {
 	BaseHandler
-	tplGlobals map[string]interface{}
 }
 
 // GlobalCtx Returns global template context.
 func (r *RequestHandler) GlobalCtx() map[string]interface{} {
-	if r.tplGlobals == nil {
-		r.tplGlobals = make(map[string]interface{})
-	}
-	return r.tplGlobals
+	return r.GetApp().Context
 }
 
 // Get implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Get() {
-	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Put implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Put() {
-	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Post implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Post() {
-	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Delete implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Delete() {
-	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Head implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Head() {
-	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Patch implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Patch() {
-	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Options implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Options() {
-	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Trace implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Trace() {
-	HandleError(http.StatusNotFound, r.getResponse(), r.getRequest(), nil)
+	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Write is an alias to RequestHandler.Request.Write. That implements io.Writer.
@@ -137,4 +135,8 @@ func (r *RequestHandler) Redirect(uri string) {
 // RedirectWithStatus will redirect client to uri using given status.
 func (r *RequestHandler) RedirectWithStatus(uri string, status int) {
 	r.redirect(uri, status)
+}
+
+func (r *RequestHandler) Error(status int, message string, details ...interface{}) {
+	r.App().Error(status, r.Response, errors.New(message), details...)
 }
