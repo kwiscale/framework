@@ -16,11 +16,10 @@ kwiscale.Datastore().Get(map[string]interface{}{
 
 */
 
-var dbdrivers = make(map[string]interface{})
+var dbdrivers = make(map[string]reflect.Type)
 
 func RegisterDatabase(name string, ds DB) {
-	d := reflect.ValueOf(ds).Elem().Interface()
-	dbdrivers[name] = d
+	dbdrivers[name] = reflect.ValueOf(ds).Elem().Type()
 }
 
 type DBModelable interface {

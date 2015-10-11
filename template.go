@@ -11,23 +11,23 @@ import (
 	"strings"
 )
 
-var templateEngine = make(map[string]interface{})
+var templateEngine = make(map[string]reflect.Type)
 
 // Options to pass to template engines if needed
 type TplOptions map[string]interface{}
 
-// RegisterTemplateEngine records template engine that implements ITemplate
+// RegisterTemplateEngine records template engine that implements Template
 // interface. The name is used to let config select the template engine.
 func RegisterTemplateEngine(name string, tpl Template) {
-	t := reflect.ValueOf(tpl).Elem().Interface()
-	templateEngine[name] = t
+	templateEngine[name] = reflect.ValueOf(tpl).Elem().Type()
 }
 
+// register basic template engine by default.
 func init() {
 	RegisterTemplateEngine("basic", &BuiltInTemplate{})
 }
 
-// ITemplate should be implemented by other template implementation to
+// Template should be implemented by other template implementation to
 // allow RequestHandlers to use Render() method
 type Template interface {
 	// Render method to implement to compile and run template

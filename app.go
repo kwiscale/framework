@@ -353,8 +353,8 @@ func (a *App) GetRoute(name string) *mux.Route {
 // GetTemplate returns a new instance of Template.
 func (a *App) GetTemplate() Template {
 	engine := templateEngine[a.Config.TemplateEngine]
-	ttype := reflect.TypeOf(engine)
-	t := reflect.New(ttype).Interface().(Template)
+	//ttype := reflect.TypeOf(engine)
+	t := reflect.New(engine).Interface().(Template)
 	t.SetTemplateDir(a.Config.TemplateDir)
 	t.SetTemplateOptions(a.Config.TemplateEngineOptions)
 	return t
@@ -374,7 +374,7 @@ func (a *App) GetRoutes(name string) []*mux.Route {
 // DB returns the App.database configured from Config.
 func (app *App) DB() DB {
 	if app.Config.DB != "" {
-		dtype := reflect.TypeOf(dbdrivers[app.Config.DB])
+		dtype := dbdrivers[app.Config.DB]
 		database := reflect.New(dtype).Interface().(DB)
 		database.SetOptions(app.Config.DBOptions)
 		database.Init()
