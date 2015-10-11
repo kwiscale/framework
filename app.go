@@ -68,8 +68,7 @@ type App struct {
 	// List of handler "names" mapped to route (will be create by a factory)
 	handlers map[*mux.Route]string
 
-	database DB
-
+	// Handler name for error handler.
 	errorHandler string
 }
 
@@ -87,9 +86,6 @@ func NewApp(config *Config) *App {
 		router:   mux.NewRouter(),
 		handlers: make(map[*mux.Route]string),
 		Context:  make(map[string]interface{}),
-
-		// Get template engine from config
-		//templateEngine: templateEngine[config.TemplateEngine],
 	}
 
 	// set sessstion store
@@ -98,13 +94,6 @@ func NewApp(config *Config) *App {
 	a.sessionstore.SetSecret(config.SessionSecret)
 	a.sessionstore.SetOptions(config.SessionEngineOptions)
 	a.sessionstore.Init()
-
-	// set Datastore
-	if config.DB != "" {
-		a.database = dbdrivers[config.DB]
-		a.database.SetOptions(config.DBOptions)
-		a.database.Init()
-	}
 
 	if config.StaticDir != "" {
 		a.SetStatic(config.StaticDir)
@@ -384,7 +373,14 @@ func (a *App) GetRoutes(name string) []*mux.Route {
 
 // DB returns the App.database configured from Config.
 func (app *App) DB() DB {
-	return app.database
+	if app.Config.DB != "" {
+		dtype := reflect.TypeOf(dbdrivers[app.Config.DB])
+		database := reflect.New(dtype).Interface().(DB)
+		database.SetOptions(app.Config.DBOptions)
+		database.Init()
+		return database
+	}
+	return nil
 }
 
 // SetErrorHandler set error handler to replace the default ErrorHandler.

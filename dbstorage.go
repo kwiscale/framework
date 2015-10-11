@@ -1,6 +1,9 @@
 package kwiscale
 
-import "time"
+import (
+	"reflect"
+	"time"
+)
 
 /*
 Must work like this:
@@ -13,10 +16,11 @@ kwiscale.Datastore().Get(map[string]interface{}{
 
 */
 
-var dbdrivers = make(map[string]DB)
+var dbdrivers = make(map[string]interface{})
 
 func RegisterDatabase(name string, ds DB) {
-	dbdrivers[name] = ds
+	d := reflect.ValueOf(ds).Elem().Interface()
+	dbdrivers[name] = d
 }
 
 type DBModelable interface {

@@ -16,6 +16,11 @@ func RegisterSessionEngine(name string, engine SessionStore) {
 	sessionEngine[name] = engine
 }
 
+// Register cookiesessionstore by default.
+func init() {
+	RegisterSessionEngine("default", &CookieSessionStore{})
+}
+
 // ISessionStore to implement to give a session storage
 type SessionStore interface {
 	// Init is called when store is initialized while App is initialized

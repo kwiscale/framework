@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 )
@@ -17,8 +18,13 @@ type TplOptions map[string]interface{}
 
 // RegisterTemplateEngine records template engine that implements ITemplate
 // interface. The name is used to let config select the template engine.
-func RegisterTemplateEngine(name string, t interface{}) {
+func RegisterTemplateEngine(name string, tpl Template) {
+	t := reflect.ValueOf(tpl).Elem().Interface()
 	templateEngine[name] = t
+}
+
+func init() {
+	RegisterTemplateEngine("basic", &BuiltInTemplate{})
 }
 
 // ITemplate should be implemented by other template implementation to
