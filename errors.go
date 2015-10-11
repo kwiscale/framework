@@ -29,7 +29,6 @@ type HTTPErrorHandler interface {
 // ErrorHandler is a basic error handler that
 // displays error in a basic webpage.
 type ErrorHandler struct {
-	HTTPErrorHandler
 	RequestHandler
 	status  int
 	err     error
@@ -69,23 +68,25 @@ func (dh *ErrorHandler) Get() {
 	tpl := `<!doctype html>
 <html>
 	<head>
-		<title>{{.Status}} Error</title>
+		<title>ERROR {{.Status}}</title>
 		<style>
 			html, body {
 				font-family: Sans, sans-serif;
 			}
+			main {
+				margin: auto;
+				width: 80%;
+				border: 2px solid #880000;
+				padding: 2em;
+			}
 		</style>
 	</head>
 	<body>
-		<h1>{{ .Status}} Error</h1>
-		<p>
-			{{ .Error }}
-		</P>
-		<pre>
-		{{ range .Details }}
-{{ . }}
-		{{ end }}
-		</pre>
+	<main>
+        <h1>ERROR {{ .Status}}</h1>
+        <p>{{ .Error }}</p>
+        <pre>{{ range .Details }}{{ . }}{{ end }}</pre>
+	</main>
 	</body>
 </html>`
 

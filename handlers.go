@@ -31,47 +31,47 @@ type RequestHandler struct {
 
 // GlobalCtx Returns global template context.
 func (r *RequestHandler) GlobalCtx() map[string]interface{} {
-	return r.GetApp().Context
+	return r.App().Context
 }
 
 // Get implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Get() {
-	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
+	r.App().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Put implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Put() {
-	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
+	r.App().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Post implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Post() {
-	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
+	r.App().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Delete implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Delete() {
-	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
+	r.App().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Head implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Head() {
-	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
+	r.App().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Patch implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Patch() {
-	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
+	r.App().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Options implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Options() {
-	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
+	r.App().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Trace implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Trace() {
-	r.GetApp().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
+	r.App().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
 }
 
 // Write is an alias to RequestHandler.Request.Write. That implements io.Writer.
@@ -113,7 +113,7 @@ func (r *RequestHandler) Render(file string, ctx map[string]interface{}) error {
 	for k, v := range ctx {
 		newctx[k] = v
 	}
-	return r.app.templateEngine.Render(r, file, newctx)
+	return r.app.GetTemplate().Render(r, file, newctx)
 }
 
 // redirect client with http status.

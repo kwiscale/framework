@@ -25,7 +25,7 @@ type TestReverseRoute struct{ RequestHandler }
 
 func (th *TestReverseRoute) Get() {
 	// Test to get route from app
-	app := th.GetApp()
+	app := th.App()
 	t := T[app]
 
 	u, err := app.GetRoute("kwiscale.TestReverseRoute").URL("category", "test")
@@ -75,7 +75,6 @@ func TestSimpleRequest(t *testing.T) {
 	if string(resp) != "Hello" {
 		t.Error("Handler didn't respond with 'hello': ", string(resp))
 	}
-	<-app.SoftStop()
 }
 
 // Try to call a bad route.
@@ -89,8 +88,6 @@ func TestBadRequest(t *testing.T) {
 	if w.Code != http.StatusNotFound {
 		t.Error(`HTTP Status is not "not found": `, w.Code)
 	}
-
-	<-app.SoftStop()
 }
 
 // Test the reverse route to get url.
@@ -107,7 +104,6 @@ func TestRouteReverse(t *testing.T) {
 	if string(resp) != "/product/foo" {
 		t.Fatal(resp, "!=", "/product/foo")
 	}
-	<-app.SoftStop()
 }
 
 // Test to get reverse route from app.
@@ -122,5 +118,4 @@ func TestReverseURLFromApp(t *testing.T) {
 	if u.String() != "/product/second" {
 		t.Fatal(u.String(), "!=", "/product/second")
 	}
-	<-app.SoftStop()
 }

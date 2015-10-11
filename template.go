@@ -5,19 +5,19 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
-var templateEngine = make(map[string]Template)
+var templateEngine = make(map[string]interface{})
 
 // Options to pass to template engines if needed
 type TplOptions map[string]interface{}
 
 // RegisterTemplateEngine records template engine that implements ITemplate
 // interface. The name is used to let config select the template engine.
-func RegisterTemplateEngine(name string, t Template) {
+func RegisterTemplateEngine(name string, t interface{}) {
 	templateEngine[name] = t
 }
 
@@ -45,7 +45,7 @@ func (tpl *BuiltInTemplate) SetTemplateDir(path string) {
 	t, err := filepath.Abs(path)
 
 	if err != nil {
-		log.Fatalln("Path not ok", err)
+		panic(err)
 	}
 	tpl.tpldir = t
 	Log("Template dir set to ", tpl.tpldir)
@@ -66,8 +66,9 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 	tpl.files = make([]string, 0)
 	content, err := ioutil.ReadFile(file)
 
+	// panic if read file breaks
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	tpl.parseOverride(content)
@@ -78,7 +79,7 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 
 	funcmap := template.FuncMap{
 		"static": func(file string) string {
-			app := w.(WebHandler).GetApp()
+			app := w.(WebHandler).App()
 			url, err := app.GetRoute("statics").URL("file", file)
 			if err != nil {
 				return err.Error()
@@ -90,15 +91,22 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 			for _, p := range args {
 				pairs = append(pairs, fmt.Sprintf("%v", p))
 			}
-			h := w.(WebHandler).GetApp().GetRoute(handler)
-			if h == nil {
-				return handler + " handler not found"
+			h := w.(WebHandler).App().GetRoutes(handler)
+			base := make([]string, 0)
+			for _, r := range h {
+				url, err := r.URL(pairs...)
+				if err != nil {
+					continue
+				}
+				route := strings.Split(url.String(), "/")
+				if len(route) >= len(base) {
+					base = route
+				}
 			}
-			url, err := h.URL(pairs...)
-			if err != nil {
-				return err.Error()
+			if len(base) == 0 {
+				return "handler url not realized - please check"
 			}
-			return url.String()
+			return strings.Join(base, "/")
 		},
 	}
 
@@ -107,11 +115,13 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 		Funcs(funcmap).
 		ParseFiles(tpl.files...)
 
+	// panic if template breaks in parse
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	err = t.Execute(w, ctx)
+	// return error there !
 	return err
 }
 

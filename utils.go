@@ -15,8 +15,9 @@ func Log(v ...interface{}) {
 }
 
 func Error(v ...interface{}) {
-	log.Print("[ERROR] ")
-	log.Println(v...)
+	msg := []interface{}{"[ERROR]"}
+	msg = append(msg, v...)
+	log.Println(msg...)
 }
 
 // getMatchRoute returns the better handler that matched request url.

@@ -24,7 +24,7 @@ type handlerManager struct {
 	closer chan int
 
 	// record handlers (as interface)
-	producer chan interface{}
+	producer chan WebHandler
 }
 
 // produceHandlers continuously generates new handlers.
@@ -34,7 +34,7 @@ func (manager handlerManager) produceHandlers() {
 	// forever produce handlers until closer is called
 	for {
 		select {
-		case manager.producer <- reflect.New(manager.handler).Interface():
+		case manager.producer <- reflect.New(manager.handler).Interface().(WebHandler):
 			Log("Appended handler ", manager.handler.Name())
 		case <-manager.closer:
 			// Someone closed the factory
@@ -60,7 +60,7 @@ type App struct {
 	sessionstore SessionStore
 
 	// Template engine instance.
-	templateEngine Template
+	//templateEngine Template
 
 	// The router that will be used
 	router *mux.Router
@@ -89,11 +89,8 @@ func NewApp(config *Config) *App {
 		Context:  make(map[string]interface{}),
 
 		// Get template engine from config
-		templateEngine: templateEngine[config.TemplateEngine],
+		//templateEngine: templateEngine[config.TemplateEngine],
 	}
-
-	a.templateEngine.SetTemplateDir(config.TemplateDir)
-	a.templateEngine.SetTemplateOptions(config.TemplateEngineOptions)
 
 	// set sessstion store
 	a.sessionstore = sessionEngine[config.SessionEngine]
@@ -159,103 +156,117 @@ func (a *App) SetStatic(prefix string) {
 // Implement http.Handler ServeHTTP method.
 func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	var req interface{}
-	handler, route, match := getBestRoute(app, r)
-
-	if handler != "" {
-		// wait for a built handler from registry
-		req = <-handlerRegistry[handler].producer
-		Log("Handler found ", req)
-		//assign some vars
-		req.(WebHandler).setRoute(route)
-		req.(WebHandler).setVars(match.Vars, w, r)
-		req.(WebHandler).setApp(app)
-		req.(WebHandler).setSessionStore(app.sessionstore)
-	}
-
-	if req, ok := req.(WebHandler); ok {
-		// Call Init before starting response
-		if code, err := req.Init(); err != nil {
-			Log(err)
-			// if returned status is <0, let Init() method do the work
-			if code <= 0 {
-				Log("Init method returns no error but a status <= 0")
-				return
-			}
-			// Init() stops the request with error and with a status code to use
-			// REM HandleError(code, req.getResponse(), req.getRequest(), err)
-			app.Error(code, w, err)
-			return
+	// try to recover panic if possible, and display
+	// an Error page
+	defer func() {
+		if err := recover(); err != nil {
+			app.Error(http.StatusInternalServerError,
+				w,
+				errors.New("An unexpected error occured"),
+				err,
+			)
 		}
-		// No stop, so we can
-		// prepare defered destroy
-		defer req.Destroy()
-	} else {
-		// Handler is not an handler...
-		app.Error(http.StatusNotFound, w, ErrNotFound, r.Method+" "+r.URL.String())
+	}()
+
+	var handler WebHandler
+	handlerName, route, match := getBestRoute(app, r)
+
+	// if non match
+	if _, ok := handlerRegistry[handlerName]; !ok {
+		app.Error(http.StatusNotFound, w, ErrNotFound, r.URL)
 		return
 	}
 
+	// wait for a built handler from registry
+	handler = <-handlerRegistry[handlerName].producer
+	Log("Handler found ", handler)
+	//assign some vars
+	handler.setRoute(route)
+	handler.setVars(match.Vars, w, r)
+	handler.setApp(app)
+	handler.setSessionStore(app.sessionstore)
+
+	// Call Init before starting response
+	if code, err := handler.Init(); err != nil {
+		Log(err)
+		// if returned status is <0, let Init() method do the work
+		if code <= 0 {
+			Log("Init method returns no error but a status <= 0")
+			return
+		}
+		// Init() stops the request with error and with a status code to use
+		// REM HandleError(code, req.getResponse(), req.getRequest(), err)
+		app.Error(code, w, err)
+		return
+	}
+
+	// Nothing stops the process calling Init(), so we can
+	// prepare defered destroy
+	defer handler.Destroy()
+
 	// Websocket case
-	if req, ok := req.(WSHandler); ok {
-		if err := req.upgrade(); err != nil {
+	if h, ok := handler.(WSHandler); ok {
+		if err := h.upgrade(); err != nil {
 			log.Println("Error upgrading Websocket protocol", err)
 			return
 		}
 
-		defer req.OnClose()
-		req.OnConnect()
+		defer h.OnClose()
+		h.OnConnect()
 
-		if _, ok := req.(WSServerHandler); ok {
-			serveWS(req)
-		} else if _, ok := req.(WSJsonHandler); ok {
-			serveJSON(req)
-		} else if _, ok := req.(WSStringHandler); ok {
-			serveString(req)
-		} else {
+		switch h.(type) {
+		case WSServerHandler:
+			serveWS(h)
+		case WSJsonHandler:
+			serveJSON(h)
+		case WSStringHandler:
+			serveString(h)
+		default:
 			app.Error(http.StatusNotImplemented, w, ErrNotImplemented)
 		}
+
 		return
 	}
 
 	// Standard Request
-	if req, ok := req.(HTTPRequestHandler); ok {
+	if h, ok := handler.(HTTPRequestHandler); ok {
 		// RequestHandler case
 		w.Header().Add("Connection", "close")
-		Log("Respond to RequestHandler", r.Method, req)
-		if req == nil {
-			app.Error(http.StatusNotFound, w, ErrNotFound, r.Method, req)
+		Log("Respond to RequestHandler", r.Method, h)
+		if h == nil {
+			app.Error(http.StatusNotFound, w, ErrNotFound, r.Method, h)
 			return
 		}
 
 		switch r.Method {
 		case "GET":
-			req.Get()
+			h.Get()
 		case "PUT":
-			req.Put()
+			h.Put()
 		case "POST":
-			req.Post()
+			h.Post()
 		case "DELETE":
-			req.Delete()
+			h.Delete()
 		case "HEAD":
-			req.Post()
+			h.Post()
 		case "PATCH":
-			req.Patch()
+			h.Patch()
 		case "OPTIONS":
-			req.Options()
+			h.Options()
 		case "TRACE":
-			req.Trace()
+			h.Trace()
 		default:
 			app.Error(http.StatusNotImplemented, w, ErrNotImplemented)
 		}
 		return
 	}
 
+	// we should NEVER go to this, but in case of...
 	details := "" +
 		fmt.Sprintf("Registry: %+v\n", handlerRegistry) +
 		fmt.Sprintf("RequestWriter: %+v\n", w) +
 		fmt.Sprintf("Reponse: %+v", r) +
-		fmt.Sprintf("KwiscaleHandler: %+v\n", req)
+		fmt.Sprintf("KwiscaleHandler: %+v\n", handler)
 	Log(details)
 	app.Error(http.StatusInternalServerError, w, ErrInternalError, details)
 }
@@ -279,7 +290,7 @@ func (app *App) handle(h interface{}, name string) string {
 	handlerRegistry[name] = handlerManager{
 		handler:  handlerType,
 		closer:   make(chan int, 0),
-		producer: make(chan interface{}, app.Config.NbHandlerCache),
+		producer: make(chan WebHandler, app.Config.NbHandlerCache),
 	}
 
 	// start to produce handlers
@@ -317,22 +328,11 @@ func (app *App) addRoute(route string, handler interface{}, routename string) {
 		name = routename
 	}
 
-	// Try to find handler with the given name. If
-	// it already exists, there may be a problem !
-	//exists := false
-	//for n, _ := range app.handlers {
-	//	if n.GetName() == name {
-	//		exists = true
-	//	}
-	//}
-
 	// record a route
-	//if !exists {
 	r := app.router.NewRoute()
 	r.Path(route)
 	r.Name(name)
 	app.handlers[r] = name
-	//}
 
 	app.handle(handler, name)
 }
@@ -361,18 +361,40 @@ func (a *App) GetRoute(name string) *mux.Route {
 	return nil
 }
 
+// GetTemplate returns a new instance of Template.
+func (a *App) GetTemplate() Template {
+	engine := templateEngine[a.Config.TemplateEngine]
+	ttype := reflect.TypeOf(engine)
+	t := reflect.New(ttype).Interface().(Template)
+	t.SetTemplateDir(a.Config.TemplateDir)
+	t.SetTemplateOptions(a.Config.TemplateEngineOptions)
+	return t
+}
+
+// GetRoutes get all routes for a handler
+func (a *App) GetRoutes(name string) []*mux.Route {
+	routes := make([]*mux.Route, 0)
+	for route, _ := range a.handlers {
+		if route.GetName() == name {
+			routes = append(routes, route)
+		}
+	}
+	return routes
+}
+
 // DB returns the App.database configured from Config.
 func (app *App) DB() DB {
 	return app.database
 }
 
 // SetErrorHandler set error handler to replace the default ErrorHandler.
-func (app *App) SetErrorHandler(h HTTPErrorHandler) {
+func (app *App) SetErrorHandler(h interface{}) {
 	app.errorHandler = app.handle(h, "")
 }
 
 // Error displays an error page with details if any.
 func (app *App) Error(status int, w http.ResponseWriter, err error, details ...interface{}) {
+	Log(err, details)
 	var handler WebHandler
 	if app.errorHandler == "" {
 		handler = &ErrorHandler{}
@@ -384,6 +406,5 @@ func (app *App) Error(status int, w http.ResponseWriter, err error, details ...i
 	handler.(HTTPErrorHandler).setStatus(status)
 	handler.(HTTPErrorHandler).setError(err)
 	handler.(HTTPErrorHandler).setDetails(details)
-	log.Printf("%T, %+v\n", handler, handler)
 	handler.(HTTPRequestHandler).Get()
 }

@@ -1,10 +1,12 @@
 package kwiscale
 
 import (
+	"crypto/md5"
 	"fmt"
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
@@ -16,9 +18,10 @@ type staticHandler struct {
 
 var cache = make(map[string][]byte)
 
-func (s *staticHandler) putInCache(c []byte, f string) {
-	if s.cacheEnabled {
-		cache[f] = c
+func (s *staticHandler) putInCache(f string) {
+	content, err := ioutil.ReadFile(f)
+	if err != nil {
+		cache[f] = content
 	}
 }
 
@@ -26,24 +29,52 @@ func (s *staticHandler) Get() {
 	file := s.Vars["file"]
 	file = filepath.Join(s.app.Config.StaticDir, file)
 
-	var content []byte
-	var err error
+	var (
+		content []byte
+		err     error
+		exists  bool
+	)
 
 	if s.cacheEnabled {
-		content = cache[file]
+		if content, exists = cache[file]; !exists {
+			go s.putInCache(file)
+		}
 	}
+	// not in cache or cache is disable
 	if content == nil {
-		content, err = ioutil.ReadFile(file)
-		if err != nil {
-			s.GetApp().Error(http.StatusNotFound, s.getResponse(), err)
+		if content, err = ioutil.ReadFile(file); err != nil {
+			s.App().Error(http.StatusNotFound, s.getResponse(), err)
 			return
 		}
-		// save in cache after all
-		defer s.putInCache(content, file)
+	}
+
+	// control or add etag
+	if etag, err := eTag(file); err == nil {
+		if match, ok := s.Request.Header["If-None-Match"]; ok {
+			for _, m := range match {
+				if etag == m {
+					s.Response.WriteHeader(http.StatusNotModified)
+					return
+				}
+			}
+		}
+		s.Response.Header().Add("ETag", etag)
 	}
 
 	mimetype := mime.TypeByExtension(filepath.Ext(file))
 	s.Response.Header().Add("Content-Type", mimetype)
 	s.Response.Header().Add("Content-Length", fmt.Sprintf("%d", len(content)))
 	s.Write(content)
+}
+
+// Get a etag for the file. It's constuct with a md5 sum of
+// <filename> + "." + <modification-time>
+func eTag(file string) (string, error) {
+	stat, err := os.Stat(file)
+	if err != nil {
+		return "", err
+	}
+
+	s := md5.Sum([]byte(stat.Name() + "." + stat.ModTime().String()))
+	return fmt.Sprintf("%x", s), nil
 }

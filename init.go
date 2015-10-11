@@ -2,6 +2,6 @@ package kwiscale
 
 // initialize some plugins
 func init() {
-	RegisterTemplateEngine("basic", &BuiltInTemplate{})
+	RegisterTemplateEngine("basic", BuiltInTemplate{})
 	RegisterSessionEngine("default", &CookieSessionStore{})
 }

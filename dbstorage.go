@@ -15,7 +15,7 @@ kwiscale.Datastore().Get(map[string]interface{}{
 
 var dbdrivers = make(map[string]DB)
 
-func RegisterDatastore(name string, ds DB) {
+func RegisterDatabase(name string, ds DB) {
 	dbdrivers[name] = ds
 }
 
