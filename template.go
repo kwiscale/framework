@@ -117,7 +117,7 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 	}
 
 	t, err := template.
-		New(filepath.Base(file)).
+		New(filepath.Base(tpl.files[0])).
 		Funcs(funcmap).
 		ParseFiles(tpl.files...)
 
