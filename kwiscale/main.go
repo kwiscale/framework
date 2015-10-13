@@ -4,13 +4,10 @@ Kwiscale command line interface.
 package main
 
 import (
-	"bytes"
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"text/template"
 
@@ -93,13 +90,17 @@ func newHandler(c *cli.Context) {
 	var (
 		y           = loadYaml(c)
 		hpkg        = c.GlobalString(HANDLER_OPT)
-		name        = c.Args().First()
-		realname    = c.Args().Get(2)
+		name        = c.Args().First() //handler short name
+		realname    = c.Args().Get(2)  //alias if any
 		handlername = hpkg + "." + strings.Title(name) + "Handler"
 		route       = c.Args().Get(1)
-		m           = map[string]string{}
+		m           = map[string]string{} //a simple map to handle route for template
 	)
 
+	// create handler file
+	createHandlerFile(handlername, c.GlobalString(HANDLER_OPT), getProjectPath(c))
+
+	// change configuration file
 	m["handler"] = handlername
 	if realname != "" {
 		m["alias"] = realname
@@ -117,13 +118,6 @@ func newHandler(c *cli.Context) {
 	b, _ := yaml.Marshal(y)
 	cfg := filepath.Join(getProjectPath(c), "config.yml")
 	ioutil.WriteFile(cfg, b, 0666)
-
-	// now, parse config to generate/change handlers
-	// and main.go file
-	//parseConfig(c)
-
-	createHandlerFile(handlername, c.GlobalString(HANDLER_OPT), getProjectPath(c))
-
 }
 
 // parse config file to generate handler file in handlers package
@@ -151,11 +145,9 @@ func parseConfig(c *cli.Context) {
 			"alias":   alias,
 		})
 	}
-	//addHandlersInApp(handlers, c)
-
 }
 
-// create handler file
+// create handler file.
 func createHandlerFile(handler, handlerpkg, where string) {
 	var (
 		parts    = strings.Split(handler, ".")
@@ -180,76 +172,8 @@ func createHandlerFile(handler, handlerpkg, where string) {
 		"Handler":     name,
 		"HandlersPKG": handlerpkg,
 	})
+
 	log.Println("Handler created:", path)
-}
-
-// add handlers in main.go
-func addHandlersInApp(handlers []map[string]string, c *cli.Context) {
-	var (
-		where   = getProjectPath(c)
-		path    = filepath.Join(where, "main.go")
-		content = TPLAPP
-	)
-
-	if _, err := os.Stat(path); err == nil {
-		// reuse main.go
-		c, _ := ioutil.ReadFile(path)
-		content = string(c)
-	} else {
-		// build main.go content
-		hpkg := c.GlobalString(HANDLER_OPT)
-		var b []byte
-		buffer := bytes.NewBuffer(b)
-		tpl, _ := template.New("handler").Parse(content)
-		tpl.Execute(buffer, map[string]string{
-			"HandlersPKG": hpkg,
-		})
-		content = buffer.String()
-	}
-
-	tpladdnamedroute, _ := template.New("route").Parse(TPLADDNAMEDROUTE)
-
-	lines := strings.Split(content, "\n")
-	re := regexp.MustCompile(`@handlers@`)
-	endre := regexp.MustCompile(`@end handlers@`)
-	detected := false
-
-	newcontent := make([]string, 0)
-	for _, l := range lines {
-		if endre.MatchString(l) {
-			detected = false
-		}
-		if !detected {
-			newcontent = append(newcontent, l)
-		}
-		if re.MatchString(l) {
-			detected = true
-			for _, route := range handlers {
-				var b []byte
-				buffer := bytes.NewBuffer(b)
-
-				// select good template
-				tpladdnamedroute.Execute(buffer, map[string]interface{}{
-					"Route": route,
-				})
-				newcontent = append(newcontent, buffer.String())
-			}
-		}
-	}
-
-	m := strings.Join(newcontent, "\n")
-	ioutil.WriteFile(path, []byte(m), 0666)
-
-	// launch goimports and go fmt
-	cmd := exec.Command("goimports", "-w", path)
-	if err := cmd.Run(); err != nil {
-		log.Println("[WARN] goimports error", err)
-	}
-
-	cmd = exec.Command("go", "fmt", path)
-	if err := cmd.Run(); err != nil {
-		log.Println("[WARN] go fmt error", err)
-	}
 }
 
 // create directory tree
