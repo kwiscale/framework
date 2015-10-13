@@ -120,7 +120,9 @@ func newHandler(c *cli.Context) {
 
 	// now, parse config to generate/change handlers
 	// and main.go file
-	parseConfig(c)
+	//parseConfig(c)
+
+	createHandlerFile(handlername, c.GlobalString(HANDLER_OPT), getProjectPath(c))
 
 }
 
@@ -149,7 +151,7 @@ func parseConfig(c *cli.Context) {
 			"alias":   alias,
 		})
 	}
-	addHandlersInApp(handlers, c)
+	//addHandlersInApp(handlers, c)
 
 }
 
@@ -208,8 +210,8 @@ func addHandlersInApp(handlers []map[string]string, c *cli.Context) {
 	tpladdnamedroute, _ := template.New("route").Parse(TPLADDNAMEDROUTE)
 
 	lines := strings.Split(content, "\n")
-	re := regexp.MustCompile(`@routes@`)
-	endre := regexp.MustCompile(`@end routes@`)
+	re := regexp.MustCompile(`@handlers@`)
+	endre := regexp.MustCompile(`@end handlers@`)
 	detected := false
 
 	newcontent := make([]string, 0)

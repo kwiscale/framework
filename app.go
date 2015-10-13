@@ -44,8 +44,19 @@ func (manager handlerManager) produceHandlers() {
 	Log("Quitting ", manager.handler.Name, "producer")
 }
 
-// the full registry
-var handlerRegistry = make(map[string]handlerManager)
+// handlerManagerRegistry is a map of [name]handlerManager
+var handlerManagerRegistry = make(map[string]handlerManager)
+
+// handlerRegistry keep the entire handlers - map[name]type
+var handlerRegistry = make(map[string]reflect.Type)
+
+// Register takes webhandler and keep type in handlerRegistry
+func Register(h WebHandler) {
+	elem := reflect.ValueOf(h).Elem().Type()
+	name := elem.String()
+	handlerRegistry[name] = elem
+	log.Println("Registered", "name:", name, "type:", elem)
+}
 
 // App handles router and handlers.
 type App struct {
@@ -122,7 +133,20 @@ func NewAppFromConfigFile(filename ...string) *App {
 	}
 	cfg := yamlConf{}
 	yaml.Unmarshal(content, &cfg)
-	return NewApp(cfg.parse())
+
+	app := NewApp(cfg.parse())
+
+	for route, v := range cfg.Routes {
+		if handler, ok := handlerRegistry[v.Handler]; ok {
+			h := reflect.New(handler).Elem().Interface()
+			log.Println(route, h, v.Alias)
+			app.addRoute(route, h, v.Alias)
+		} else {
+			panic("Handler not found: " + v.Handler)
+		}
+	}
+
+	return app
 }
 
 // ListenAndServe calls http.ListenAndServe method
@@ -161,13 +185,13 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handlerName, route, match := getBestRoute(app, r)
 
 	// if non match
-	if _, ok := handlerRegistry[handlerName]; !ok {
+	if _, ok := handlerManagerRegistry[handlerName]; !ok {
 		app.Error(http.StatusNotFound, w, ErrNotFound, r.URL)
 		return
 	}
 
 	// wait for a built handler from registry
-	handler = <-handlerRegistry[handlerName].producer
+	handler = <-handlerManagerRegistry[handlerName].producer
 	Log("Handler found ", handler)
 	//assign some vars
 	handler.setRoute(route)
@@ -252,7 +276,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// we should NEVER go to this, but in case of...
 	details := "" +
-		fmt.Sprintf("Registry: %+v\n", handlerRegistry) +
+		fmt.Sprintf("Registry: %+v\n", handlerManagerRegistry) +
 		fmt.Sprintf("RequestWriter: %+v\n", w) +
 		fmt.Sprintf("Reponse: %+v", r) +
 		fmt.Sprintf("KwiscaleHandler: %+v\n", handler)
@@ -269,21 +293,21 @@ func (app *App) handle(h interface{}, name string) string {
 	}
 	Log("Register ", name)
 
-	if _, ok := handlerRegistry[name]; ok {
+	if _, ok := handlerManagerRegistry[name]; ok {
 		// do not create registry manager if it exists
 		Log("Registry manager for", name, "already exists")
 		return name
 	}
 
 	// Append a new handler manager in registry
-	handlerRegistry[name] = handlerManager{
+	handlerManagerRegistry[name] = handlerManager{
 		handler:  handlerType,
 		closer:   make(chan int, 0),
 		producer: make(chan WebHandler, app.Config.NbHandlerCache),
 	}
 
 	// start to produce handlers
-	go handlerRegistry[name].produceHandlers()
+	go handlerManagerRegistry[name].produceHandlers()
 
 	// return the handler name
 	return name
@@ -330,7 +354,7 @@ func (app *App) addRoute(route string, handler interface{}, routename string) {
 func (app *App) SoftStop() chan int {
 	c := make(chan int, 0)
 	go func() {
-		for name, closer := range handlerRegistry {
+		for name, closer := range handlerManagerRegistry {
 			Log("Closing ", name)
 			closer.closer <- 1
 			Log("Closed ", name)
@@ -395,7 +419,7 @@ func (app *App) Error(status int, w http.ResponseWriter, err error, details ...i
 	if app.errorHandler == "" {
 		handler = &ErrorHandler{}
 	} else {
-		handler = (<-handlerRegistry[app.errorHandler].producer).(WebHandler)
+		handler = (<-handlerManagerRegistry[app.errorHandler].producer).(WebHandler)
 	}
 	handler.setApp(app)
 	handler.setVars(nil, w, nil)

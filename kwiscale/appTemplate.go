@@ -4,16 +4,11 @@ const TPLAPP = `package main
 
 import (
 	"gopkg.in/kwiscale/framework.v0"
-	"{{.Project}}/{{.HandlersPKG}}"
+	_ "{{.Project}}/{{.HandlersPKG}}"
 )
 
 func main(){
-
 	app := kwiscale.NewAppFromConfigFile()
-
-	//@routes@ -- DO NOT REMOVE THIS COMMENT
-	//@end routes@ -- DO NOT REMOVE THIS COMMENT
-
 	app.ListenAndServe()
 }
 `
@@ -25,6 +20,11 @@ import (
 	"gopkg.in/kwiscale/framework.v0"
 )
 
+
+func init(){
+	kwiscale.Register(&{{.Handler}}{})
+}
+
 type {{.Handler}} struct { kwiscale.RequestHandler }
 
 `
@@ -33,6 +33,7 @@ type {{.Handler}} struct { kwiscale.RequestHandler }
 //	app.AddRoute(route, handler)
 // or
 //	app.AddNamedRoute(route, handler, alias)
-const TPLADDNAMEDROUTE = "	app.Add{{if .Route.alias}}Named{{end}}Route(`{{.Route.route}}`,{{.Route.handler}}{}" +
-	"{{if .Route.alias}}, \"{{ .Route.alias }}\"{{end}}" +
-	")"
+//const TPLADDNAMEDROUTE = "	app.Add{{if .Route.alias}}Named{{end}}Route(`{{.Route.route}}`,{{.Route.handler}}{}" +
+//	"{{if .Route.alias}}, \"{{ .Route.alias }}\"{{end}}" +
+//	")"
+const TPLADDNAMEDROUTE = "	kwiscale.Register(&{{.Route.handler}}{})"

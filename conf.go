@@ -91,16 +91,22 @@ type ymlTemplate struct {
 	Options TplOptions `yaml:"options,omitempty"`
 }
 
+type ymlRoute struct {
+	Handler string `yaml:"handler"`
+	Alias   string `yaml:"alias"`
+}
+
 // yamlConf is used to make yaml configuration easiest to write.
 type yamlConf struct {
-	Port               string      `yaml:"listen,omitempty"`
-	NbHandlerCache     int         `yaml:"nbhandler,omitempty"`
-	StaticDir          string      `yaml:"staticdir,omitempty"`
-	StaticCacheEnabled bool        `yaml:"staticcache,omitempty"`
-	StrictSlash        bool        `yaml:"strictslash,omitempty"`
-	DB                 ymlDB       `yaml:"db,omitempty"`
-	Template           ymlTemplate `yaml:"template,omitempty"`
-	Session            ymlSession  `yaml:"session,omitempty"`
+	Port               string              `yaml:"listen,omitempty"`
+	NbHandlerCache     int                 `yaml:"nbhandler,omitempty"`
+	StaticDir          string              `yaml:"staticdir,omitempty"`
+	StaticCacheEnabled bool                `yaml:"staticcache,omitempty"`
+	StrictSlash        bool                `yaml:"strictslash,omitempty"`
+	DB                 ymlDB               `yaml:"db,omitempty"`
+	Template           ymlTemplate         `yaml:"template,omitempty"`
+	Session            ymlSession          `yaml:"session,omitempty"`
+	Routes             map[string]ymlRoute `yaml:"routes"`
 }
 
 // parse returns the *Config from yaml struct.
