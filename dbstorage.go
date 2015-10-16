@@ -25,12 +25,36 @@ func RegisterDatabase(name string, ds DB) {
 type DBModelable interface {
 	OnCreate()
 	OnUpdate()
+	OnGetFunc(func(DBModelable, interface{}))
+	OnGet(res interface{})
+	Id(id ...interface{}) interface{}
 }
 
 type DBModel struct {
-	ID        int64
+	ID        interface{}
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	onGet     func(DBModelable, interface{})
+}
+
+// Id Get/Set result id in m.ID
+func (m *DBModel) Id(id ...interface{}) interface{} {
+	if len(id) > 0 {
+		if len(id) > 1 {
+			panic("You must give only one ID to Id() function")
+		}
+
+		m.ID = id[0]
+	}
+	return m.ID
+}
+
+func (model *DBModel) OnGetFunc(f func(DBModelable, interface{})) {
+	model.onGet = f
+}
+
+func (model *DBModel) OnGet(res interface{}) {
+	model.onGet(model, res)
 }
 
 func (model *DBModel) OnCreate() {
@@ -51,8 +75,8 @@ type DB interface {
 	Insert(what interface{}) error
 	Get(id, result interface{})
 	Find(query Q) DBQuery
-	Update(where map[string]interface{}, what interface{}) error
-	Delete(what interface{}) error
+	Update(where Q, what interface{}) error
+	Delete(where Q) error
 	Close()
 }
 
@@ -60,5 +84,5 @@ type DBQuery interface {
 	Limit(int64) DBQuery
 	Offset(int64) DBQuery
 	One(interface{}) error
-	All(interface{}) error
+	All([]interface{}) error
 }

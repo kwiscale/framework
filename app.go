@@ -14,48 +14,21 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// handlerManager is used to manage handler production.
-type handlerManager struct {
-
-	// the handler type to produce
-	handler reflect.Type
-
-	// record closers
-	closer chan int
-
-	// record handlers (as interface)
-	producer chan WebHandler
-}
-
-// produceHandlers continuously generates new handlers.
-// The number of handlers to generate in cache is set by
-// Config.NbHandlerCache.
-func (manager handlerManager) produceHandlers() {
-	// forever produce handlers until closer is called
-	for {
-		select {
-		case manager.producer <- reflect.New(manager.handler).Interface().(WebHandler):
-			Log("Appended handler ", manager.handler.Name())
-		case <-manager.closer:
-			// Someone closed the factory
-			break
-		}
-	}
-	Log("Quitting ", manager.handler.Name, "producer")
-}
-
 // handlerManagerRegistry is a map of [name]handlerManager
 var handlerManagerRegistry = make(map[string]handlerManager)
 
 // handlerRegistry keep the entire handlers - map[name]type
 var handlerRegistry = make(map[string]reflect.Type)
 
-// Register takes webhandler and keep type in handlerRegistry
+// Register takes webhandler and keep type in handlerRegistry.
+// It can be called directly (to set handler accessible
+// by configuration file), or implicitally by "AddRoute" and "AddNamedRoute()".
 func Register(h WebHandler) {
 	elem := reflect.ValueOf(h).Elem().Type()
 	name := elem.String()
-	handlerRegistry[name] = elem
-	log.Println("Registered", "name:", name, "type:", elem)
+	if _, exists := handlerRegistry[name]; !exists {
+		handlerRegistry[name] = elem
+	}
 }
 
 // App handles router and handlers.
@@ -138,7 +111,7 @@ func NewAppFromConfigFile(filename ...string) *App {
 
 	for route, v := range cfg.Routes {
 		if handler, ok := handlerRegistry[v.Handler]; ok {
-			h := reflect.New(handler).Elem().Interface()
+			h := reflect.New(handler).Interface().(WebHandler)
 			log.Println(route, h, v.Alias)
 			app.addRoute(route, h, v.Alias)
 		} else {
@@ -163,7 +136,7 @@ func (a *App) ListenAndServe(port ...string) {
 func (a *App) SetStatic(prefix string) {
 	path, _ := filepath.Abs(prefix)
 	prefix = filepath.Base(path)
-	a.AddNamedRoute("/"+prefix+"/{file:.*}", staticHandler{}, "statics")
+	a.AddNamedRoute("/"+prefix+"/{file:.*}", &staticHandler{}, "statics")
 }
 
 // Implement http.Handler ServeHTTP method.
@@ -191,7 +164,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// wait for a built handler from registry
-	handler = <-handlerManagerRegistry[handlerName].producer
+	handler = <-handlerManagerRegistry[handlerName].produce()
 	Log("Handler found ", handler)
 	//assign some vars
 	handler.setRoute(route)
@@ -208,7 +181,6 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Init() stops the request with error and with a status code to use
-		// REM HandleError(code, req.getResponse(), req.getRequest(), err)
 		app.Error(code, w, err)
 		return
 	}
@@ -286,8 +258,8 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Append handler in handlerRegistry and start producing.
 // return the name of the handler.
-func (app *App) handle(h interface{}, name string) string {
-	handlerType := reflect.TypeOf(h)
+func (app *App) handle(h WebHandler, name string) string {
+	handlerType := reflect.ValueOf(h).Elem().Type()
 	if name == "" {
 		name = handlerType.String()
 	}
@@ -301,10 +273,12 @@ func (app *App) handle(h interface{}, name string) string {
 
 	// Append a new handler manager in registry
 	handlerManagerRegistry[name] = handlerManager{
-		handler:  handlerType,
+		handler:  name,
 		closer:   make(chan int, 0),
 		producer: make(chan WebHandler, app.Config.NbHandlerCache),
 	}
+
+	Register(h)
 
 	// start to produce handlers
 	go handlerManagerRegistry[name].produceHandlers()
@@ -315,14 +289,14 @@ func (app *App) handle(h interface{}, name string) string {
 
 // AddRoute appends route mapped to handler. Note that rh parameter should
 // implement IRequestHandler (generally a struct composing RequestHandler or WebSocketHandler).
-func (app *App) AddRoute(route string, handler interface{}) {
+func (app *App) AddRoute(route string, handler WebHandler) {
 	app.addRoute(route, handler, "")
 }
 
 // AddNamedRoute does the same as AddRoute but set the route name instead of
 // using the handler name. If the given name already exists or is empty, the method
 // panics.
-func (app *App) AddNamedRoute(route string, handler interface{}, name string) {
+func (app *App) AddNamedRoute(route string, handler WebHandler, name string) {
 	name = strings.TrimSpace(name)
 	if len(name) == 0 {
 		panic(errors.New("The given name is empty"))
@@ -332,9 +306,9 @@ func (app *App) AddNamedRoute(route string, handler interface{}, name string) {
 }
 
 // Add route to the stack.
-func (app *App) addRoute(route string, handler interface{}, routename string) {
+func (app *App) addRoute(route string, handler WebHandler, routename string) {
 	var name string
-	handlerType := reflect.TypeOf(handler)
+	handlerType := reflect.ValueOf(handler).Elem().Type()
 	if len(routename) == 0 {
 		name = handlerType.String()
 	} else {
@@ -408,7 +382,7 @@ func (app *App) DB() DB {
 }
 
 // SetErrorHandler set error handler to replace the default ErrorHandler.
-func (app *App) SetErrorHandler(h interface{}) {
+func (app *App) SetErrorHandler(h WebHandler) {
 	app.errorHandler = app.handle(h, "")
 }
 
@@ -419,7 +393,7 @@ func (app *App) Error(status int, w http.ResponseWriter, err error, details ...i
 	if app.errorHandler == "" {
 		handler = &ErrorHandler{}
 	} else {
-		handler = (<-handlerManagerRegistry[app.errorHandler].producer).(WebHandler)
+		handler = <-handlerManagerRegistry[app.errorHandler].produce()
 	}
 	handler.setApp(app)
 	handler.setVars(nil, w, nil)
