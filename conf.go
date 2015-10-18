@@ -31,8 +31,8 @@ type Config struct {
 	StrictSlash bool
 
 	// Datastrore
-	DB        string
-	DBOptions DBOptions
+	//DB        string
+	//DBOptions DBOptions
 }
 
 // Initialize config default values if some are not defined
@@ -73,10 +73,12 @@ func initConfig(config *Config) *Config {
 	return config
 }
 
+/*
 type ymlDB struct {
-	Engine  string    `yml:"engine"`
+	Engine string `yml:"engine"`
 	Options DBOptions `yml:"options"`
 }
+*/
 
 type ymlSession struct {
 	Name    string               `yaml:"name,omitempty"`
@@ -103,10 +105,10 @@ type yamlConf struct {
 	StaticDir          string              `yaml:"staticdir,omitempty"`
 	StaticCacheEnabled bool                `yaml:"staticcache,omitempty"`
 	StrictSlash        bool                `yaml:"strictslash,omitempty"`
-	DB                 ymlDB               `yaml:"db,omitempty"`
 	Template           ymlTemplate         `yaml:"template,omitempty"`
 	Session            ymlSession          `yaml:"session,omitempty"`
 	Routes             map[string]ymlRoute `yaml:"routes"`
+	//DB                 ymlDB               `yaml:"db,omitempty"`
 }
 
 // parse returns the *Config from yaml struct.
@@ -116,8 +118,6 @@ func (y yamlConf) parse() *Config {
 		NbHandlerCache:        y.NbHandlerCache,
 		StaticDir:             y.StaticDir,
 		StrictSlash:           y.StrictSlash,
-		DB:                    y.DB.Engine,
-		DBOptions:             y.DB.Options,
 		SessionEngine:         y.Session.Engine,
 		SessionName:           y.Session.Name,
 		SessionSecret:         y.Session.Secret,
@@ -125,5 +125,7 @@ func (y yamlConf) parse() *Config {
 		TemplateDir:           y.Template.Dir,
 		TemplateEngine:        y.Template.Engine,
 		TemplateEngineOptions: y.Template.Options,
+		//DB:                    y.DB.Engine,
+		//DBOptions:             y.DB.Options,
 	}
 }

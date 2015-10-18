@@ -26,7 +26,7 @@ func TestRenderError(t *testing.T) {
 	app := NewApp(&Config{
 		TemplateDir: "./",
 	})
-	app.AddRoute("/", templateHandler{})
+	app.AddRoute("/", &templateHandler{})
 	app.ServeHTTP(w, r)
 	if w.Code != http.StatusInternalServerError {
 		t.Fatal("A non existing template should do a 500 error, but it returns ", w.Code)
@@ -54,7 +54,7 @@ func TestRenderVar(t *testing.T) {
 	app := NewApp(&Config{
 		TemplateDir: d,
 	})
-	app.AddRoute("/", templateHandler{})
+	app.AddRoute("/", &templateHandler{})
 	app.ServeHTTP(w, r)
 
 	expected := "<p>bar</p>"

@@ -17,6 +17,13 @@ type handlerManager struct {
 
 // newWebHandler produce a WebHandler from registry.
 func (manager handlerManager) newWebHandler() WebHandler {
+	defer func() {
+		if err := recover(); err != nil {
+			Log("WTF ?", manager)
+			Log(handlerRegistry)
+			panic("LA")
+		}
+	}()
 	return reflect.New(handlerRegistry[manager.handler]).Interface().(WebHandler)
 }
 

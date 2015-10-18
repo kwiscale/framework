@@ -26,6 +26,7 @@ var handlerRegistry = make(map[string]reflect.Type)
 func Register(h WebHandler) {
 	elem := reflect.ValueOf(h).Elem().Type()
 	name := elem.String()
+	Log("Registering", name)
 	if _, exists := handlerRegistry[name]; !exists {
 		handlerRegistry[name] = elem
 	}
@@ -136,7 +137,8 @@ func (a *App) ListenAndServe(port ...string) {
 func (a *App) SetStatic(prefix string) {
 	path, _ := filepath.Abs(prefix)
 	prefix = filepath.Base(path)
-	a.AddNamedRoute("/"+prefix+"/{file:.*}", &staticHandler{}, "statics")
+	s := &staticHandler{}
+	a.AddNamedRoute("/"+prefix+"/{file:.*}", s, "statics")
 }
 
 // Implement http.Handler ServeHTTP method.
@@ -265,6 +267,7 @@ func (app *App) handle(h WebHandler, name string) string {
 	}
 	Log("Register ", name)
 
+	Register(h)
 	if _, ok := handlerManagerRegistry[name]; ok {
 		// do not create registry manager if it exists
 		Log("Registry manager for", name, "already exists")
@@ -273,12 +276,10 @@ func (app *App) handle(h WebHandler, name string) string {
 
 	// Append a new handler manager in registry
 	handlerManagerRegistry[name] = handlerManager{
-		handler:  name,
+		handler:  handlerType.String(),
 		closer:   make(chan int, 0),
 		producer: make(chan WebHandler, app.Config.NbHandlerCache),
 	}
-
-	Register(h)
 
 	// start to produce handlers
 	go handlerManagerRegistry[name].produceHandlers()
@@ -370,7 +371,7 @@ func (a *App) GetRoutes(name string) []*mux.Route {
 }
 
 // DB returns the App.database configured from Config.
-func (app *App) DB() DB {
+/*func (app *App) DB() DB {
 	if app.Config.DB != "" {
 		dtype := dbdrivers[app.Config.DB]
 		database := reflect.New(dtype).Interface().(DB)
@@ -378,8 +379,9 @@ func (app *App) DB() DB {
 		database.Init()
 		return database
 	}
+	Log("No db selected")
 	return nil
-}
+}*/
 
 // SetErrorHandler set error handler to replace the default ErrorHandler.
 func (app *App) SetErrorHandler(h WebHandler) {

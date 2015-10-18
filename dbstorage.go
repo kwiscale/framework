@@ -1,20 +1,12 @@
 package kwiscale
 
+/*Currently disabled*/
+
+/*
 import (
 	"reflect"
 	"time"
 )
-
-/*
-Must work like this:
-
-user := &User{}
-
-kwiscale.Datastore().Get(map[string]interface{}{
-	"name" : "Foo"
-}).Limit(10).Find(u)
-
-*/
 
 var dbdrivers = make(map[string]reflect.Type)
 
@@ -22,67 +14,35 @@ func RegisterDatabase(name string, ds DB) {
 	dbdrivers[name] = reflect.ValueOf(ds).Elem().Type()
 }
 
-type DBModelable interface {
-	OnCreate()
-	OnUpdate()
-	OnGetFunc(func(DBModelable, interface{}))
-	OnGet(res interface{})
-	Id(id ...interface{}) interface{}
-}
-
-type DBModel struct {
-	ID        interface{}
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	onGet     func(DBModelable, interface{})
-}
-
-// Id Get/Set result id in m.ID
-func (m *DBModel) Id(id ...interface{}) interface{} {
-	if len(id) > 0 {
-		if len(id) > 1 {
-			panic("You must give only one ID to Id() function")
-		}
-
-		m.ID = id[0]
-	}
-	return m.ID
-}
-
-func (model *DBModel) OnGetFunc(f func(DBModelable, interface{})) {
-	model.onGet = f
-}
-
-func (model *DBModel) OnGet(res interface{}) {
-	model.onGet(model, res)
-}
-
-func (model *DBModel) OnCreate() {
-	model.CreatedAt = time.Now()
-}
-
-func (model *DBModel) OnUpdate() {
-	model.UpdatedAt = time.Now()
-}
-
+// Database options to give to driver.
 type DBOptions map[string]interface{}
 
-type Q map[string]interface{}
+// Query structure.
+type Q struct {
+	Request interface{}
+	Limit   int
+	Offset  int
+}
 
 type DB interface {
 	SetOptions(DBOptions)
 	Init()
-	Insert(what interface{}) error
-	Get(id, result interface{})
-	Find(query Q) DBQuery
-	Update(where Q, what interface{}) error
-	Delete(where Q) error
 	Close()
+
+	// Migrate can be called to migrate table.
+	Migrate(interface{}) error
+	// Save should update/create data.
+	Save(obj interface{}) error
+	// Fetch queries database to fetch data and set it on result.
+	Fetch(request Q, result interface{}) error
+	// Delete data following given interface.
+	Delete(where interface{}) error
 }
 
-type DBQuery interface {
-	Limit(int64) DBQuery
-	Offset(int64) DBQuery
-	One(interface{}) error
-	All([]interface{}) error
+type DBModel struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
 }
+*/
