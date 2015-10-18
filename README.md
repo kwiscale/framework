@@ -1,7 +1,7 @@
 kwiscale
 ========
 
-[![GoDoc](https://godoc.org/gopkg.in/kwiscale/framework.v0?status.svg)](https://godoc.org/gopkg.in/kwiscale/framework.v0)
+[![GoDoc](https://godoc.org/gopkg.in/kwiscale/framework.v1?status.svg)](https://godoc.org/gopkg.in/kwiscale/framework.v1)
 
 
 Web Middleware for Golang
@@ -23,7 +23,7 @@ How to use
 
 Install with "go get" command:
 
-    go get gopkg.in/kwiscale/framework.v0.v0
+    go get gopkg.in/kwiscale/framework.v1
 
 Create a project:
 
@@ -39,7 +39,7 @@ Let's try an example:
 ```go
 package handlers
 
-import "gopkg.in/kwiscale/framework.v0"
+import "gopkg.in/kwiscale/framework.v1"
 
 // this is the Index Handler that
 // is composed by a RequestHandler
@@ -61,7 +61,7 @@ Then in you main.go::
 package main
 
 import (
-    "gopkg.in/kwiscale/framework.v0"
+    "gopkg.in/kwiscale/framework.v1"
     "./handlers"
 )
 
@@ -137,7 +137,7 @@ Basic Templates
 
 Kwiscale provides a "basic" template engine that use `http/template`. Kwiscale only add a "very basic template override system".
 
-If you plan to have a complete override system, please use http://gopkg.in/kwiscale/template-pongo2.v0 that implements pango2 template.
+If you plan to have a complete override system, please use http://gopkg.in/kwiscale/template-pongo2.v1 that implements pango2 template.
 
 See the following example.
 

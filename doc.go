@@ -7,7 +7,7 @@ Kwiscale can also serve Websockets.
 It provides a basic template system based on http/template from Go SDK and has got a plugin system to provides other template
 engines
 
-See http://gopkg.in/kwiscale/template-pongo2.v0 to use Pongo2.
+See http://gopkg.in/kwiscale/template-pongo2.v1 to use Pongo2.
 
 To handle HTTP Verbs:
 
@@ -19,7 +19,7 @@ To handle HTTP Verbs:
 
 	func main(){
 		app := kwiscale.NewApp(nil)
-		app.AddRoute("/home", HomeHandler{})
+		app.AddRoute("/home", &HomeHandler{})
 		// Default listening on 8000 port
 		app.ListenAndServe()
 	}

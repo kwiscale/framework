@@ -4,7 +4,7 @@ package main
 const TPLAPP = `package main
 
 import (
-	"gopkg.in/kwiscale/framework.v0"
+	"gopkg.in/kwiscale/framework.v1"
 	_ "{{.Project}}/{{.HandlersPKG}}"
 )
 
@@ -18,7 +18,7 @@ func main(){
 const TPLHANDLER = `package {{.HandlersPKG}}
 
 import (
-	"gopkg.in/kwiscale/framework.v0"
+	"gopkg.in/kwiscale/framework.v1"
 )
 
 
