@@ -1,5 +1,6 @@
 package main
 
+// The main package template.
 const TPLAPP = `package main
 
 import (
@@ -29,11 +30,5 @@ type {{.Handler}} struct { kwiscale.RequestHandler }
 
 `
 
-// Generate:
-//	app.AddRoute(route, handler)
-// or
-//	app.AddNamedRoute(route, handler, alias)
-//const TPLADDNAMEDROUTE = "	app.Add{{if .Route.alias}}Named{{end}}Route(`{{.Route.route}}`,{{.Route.handler}}{}" +
-//	"{{if .Route.alias}}, \"{{ .Route.alias }}\"{{end}}" +
-//	")"
+// Generate a handler register call.
 const TPLADDNAMEDROUTE = "	kwiscale.Register(&{{.Route.handler}}{})"
