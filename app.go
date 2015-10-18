@@ -15,7 +15,7 @@ import (
 )
 
 // handlerManagerRegistry is a map of [name]handlerManager
-var handlerManagerRegistry = make(map[string]handlerManager)
+var handlerManagerRegistry = make(map[string]*handlerManager)
 
 // handlerRegistry keep the entire handlers - map[name]type
 var handlerRegistry = make(map[string]reflect.Type)
@@ -262,6 +262,7 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // return the name of the handler.
 func (app *App) handle(h WebHandler, name string) string {
 	handlerType := reflect.ValueOf(h).Elem().Type()
+	handlerName := handlerType.String()
 	if name == "" {
 		name = handlerType.String()
 	}
@@ -275,10 +276,16 @@ func (app *App) handle(h WebHandler, name string) string {
 	}
 
 	// Append a new handler manager in registry
-	handlerManagerRegistry[name] = handlerManager{
-		handler:  handlerType.String(),
+
+	hm := &handlerManager{
+		handler:  handlerName,
 		closer:   make(chan int, 0),
 		producer: make(chan WebHandler, app.Config.NbHandlerCache),
+	}
+	handlerManagerRegistry[name] = hm
+	// to be able to fetch handler by real name, only if alias is not given
+	if name != handlerName {
+		handlerManagerRegistry[handlerName] = hm
 	}
 
 	// start to produce handlers
