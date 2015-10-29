@@ -119,3 +119,21 @@ func TestReverseURLFromApp(t *testing.T) {
 		t.Fatal(u.String(), "!=", "/product/second")
 	}
 }
+
+// BUG: This is a limit case we really need to study
+func _TestBestRoute(t *testing.T) {
+
+	r, _ := http.NewRequest("GET", "http://example.com/test/route", nil)
+	//w := httptest.NewRecorder()
+
+	app := initApp(t)
+
+	app.AddRoute("/test/route", &TestHandler{})
+	app.AddRoute("/{p:.*}", &TestReverseRoute{})
+
+	name, _, _ := getBestRoute(app, r)
+
+	if name != "kwiscale.TestReverseRoute" {
+		t.Fatal("For /test/route, the handler that matches should be kwiscale.TestReverseRoute and not", name)
+	}
+}
