@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -180,12 +179,4 @@ func (b *BaseHandler) GetURL(s ...string) (*url.URL, error) {
 // App() returns the current application.
 func (b *BaseHandler) App() *App {
 	return b.app
-}
-
-// DEPRECATED
-//
-// GetApp returns the app that holds this handler.
-func (b *BaseHandler) GetApp() *App {
-	log.Println("[WARN] GetAp() is deprecated, please use App() method instead.")
-	return b.App()
 }
