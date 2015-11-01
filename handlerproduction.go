@@ -11,7 +11,7 @@ type handlerManager struct {
 	// record closers
 	closer chan int
 
-	// record handlers (as interface)
+	// chan that provides handler
 	producer chan WebHandler
 }
 
@@ -19,9 +19,7 @@ type handlerManager struct {
 func (manager handlerManager) newWebHandler() WebHandler {
 	defer func() {
 		if err := recover(); err != nil {
-			Log("WTF ?", manager)
-			Log(handlerRegistry)
-			panic("LA")
+			Error(err, handlerRegistry)
 		}
 	}()
 	return reflect.New(handlerRegistry[manager.handler]).Interface().(WebHandler)
@@ -36,13 +34,13 @@ func (manager handlerManager) produce() <-chan WebHandler {
 // The number of handlers to generate in cache is set by
 // Config.NbHandlerCache.
 func (manager handlerManager) produceHandlers() {
-	// forever produce handlers until closer is called
+	// forever produce handlers until closer is filled
 	for {
 		select {
 		case manager.producer <- manager.newWebHandler():
-			Log("Appended handler ", manager.handler)
+			Log("Produced handler ", manager.handler)
 		case <-manager.closer:
-			// Someone closed the factory
+			Log("Handler production closed")
 			break
 		}
 	}

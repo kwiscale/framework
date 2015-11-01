@@ -1,7 +1,6 @@
 package kwiscale
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -22,38 +21,40 @@ func Error(v ...interface{}) {
 }
 
 // getMatchRoute returns the better handler that matched request url.
-// It returne handlername, mux.Route and mux.RouteMatch.
-func getBestRoute(app *App, r *http.Request) (string, *mux.Route, mux.RouteMatch) {
+// It returns handlername, mux.Route and mux.RouteMatch.
+//
+// Rule is simple:
+//	- if A url path length is greater than B url path length, B wins
+//  - if A url path length is equal that B url path length, then:
+//		- if A number of path vars is greater than B number if path vars, B wins
+//
+// So:
+//
+//	- /path/A vs /B => B wins
+//  - /path/A/{foo:.*} vs /path/B/bar => B wins
+func getBestRoute(app *App, r *http.Request) (handlerName string, route *mux.Route, match mux.RouteMatch) {
 
-	var (
-		points               = -1
-		handlerToInstanciate string
-		matchedRoute         *mux.Route
-		routeMatch           mux.RouteMatch
-	)
+	points := -1
 
-	for route, handler := range app.handlers {
-		var match mux.RouteMatch
-		if route.Match(r, &match) {
-			plength := len(strings.Split(r.URL.Path, "/")) + len(match.Vars)
+	for handlerRoute, handler := range app.handlers {
+		var routematch mux.RouteMatch
+		if handlerRoute.Match(r, &routematch) {
+			plength := len(strings.Split(r.URL.Path, "/")) + len(routematch.Vars)
 			if points == -1 {
 				points = plength
 			} else if plength > points {
 				continue
 			}
-			// if number of url path part is lower than last matched route
-			// then try next...
-			Log("Matches route vars", handler, match.Vars)
+
+			Log("Matches route vars", handler, routematch.Vars)
 			points = plength
 
-			// construct handler from its name
-			Log(fmt.Sprintf("Route matches %#v\n", route))
 			Log("Handler to fetch", handler)
-			handlerToInstanciate = handler
-			matchedRoute = route
-			routeMatch = match
+			handlerName = handler.handlername
+			route = handlerRoute
+			match = routematch
 		}
 	}
 
-	return handlerToInstanciate, matchedRoute, routeMatch
+	return
 }
