@@ -20,6 +20,13 @@ func (th *TestHandler) Get() {
 	th.WriteString("Hello")
 }
 
+// A test handler with method that handle paramters
+type TestParamHandler struct{ RequestHandler }
+
+func (th *TestParamHandler) Get(id int, name string, activated bool) {
+	th.WriteString(fmt.Sprintf("%d %s %v", id, name, activated))
+}
+
 // Handler to test reversed route.
 type TestReverseRoute struct{ RequestHandler }
 
@@ -135,5 +142,33 @@ func _TestBestRoute(t *testing.T) {
 
 	if name != "kwiscale.TestReverseRoute" {
 		t.Fatal("For /test/route, the handler that matches should be kwiscale.TestReverseRoute and not", name)
+	}
+}
+
+func TestMethodWithArguments(t *testing.T) {
+	app := initApp(t)
+	app.AddRoute(`/user/{id:\d+}/{name:.*}/{activated:.*}`, &TestParamHandler{})
+
+	r, _ := http.NewRequest("GET", "http://example.com/user/42/foo/true", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+
+	content, err := ioutil.ReadAll(w.Body)
+	if string(content) != "42 foo true" {
+		t.Fatal("Bad argument match:", string(content), "instead of 42 foo true", err)
+	}
+
+}
+
+func TestMethodWithBadArgument(t *testing.T) {
+	app := initApp(t)
+	app.AddRoute(`/user/{id:\d+}/{name:.*}/{activated:.*}`, &TestParamHandler{})
+
+	r, _ := http.NewRequest("GET", "http://example.com/user/42/foo/BAR", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	content, err := ioutil.ReadAll(w.Body)
+	if w.Code != 500 {
+		t.Fatal("Handler should crash with 500 Error for bad match parameter, we've got", w.Code, content, err)
 	}
 }

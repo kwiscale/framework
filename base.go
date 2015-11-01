@@ -35,6 +35,7 @@ type WebHandler interface {
 	setApp(*App)
 	App() *App
 	setRoute(*mux.Route)
+
 	getRequest() *http.Request
 	getResponse() http.ResponseWriter
 
@@ -62,8 +63,9 @@ type BaseHandler struct {
 	Vars         map[string]string
 	sessionStore SessionStore
 
-	route *mux.Route
-	app   *App
+	route     *mux.Route
+	app       *App
+	routepath string
 }
 
 // Init is called before the begin of response (before Get, Post, and so on).

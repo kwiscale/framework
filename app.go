@@ -8,17 +8,22 @@ import (
 	"net/http"
 	"path/filepath"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
 	"gopkg.in/yaml.v2"
 )
 
-// handlerManagerRegistry is a map of [name]handlerManager
+// handlerManagerRegistry is a map of [name]handlerManager.
 var handlerManagerRegistry = make(map[string]*handlerManager)
 
-// handlerRegistry keep the entire handlers - map[name]type
+// handlerRegistry keep the entire handlers - map[name]type.
 var handlerRegistry = make(map[string]reflect.Type)
+
+// regexp to find url ordered params from gorilla form.
+var urlParamRegexp = regexp.MustCompile(`\{(.+?):`)
 
 // Register takes webhandler and keep type in handlerRegistry.
 // It can be called directly (to set handler accessible
@@ -30,6 +35,11 @@ func Register(h WebHandler) {
 	if _, exists := handlerRegistry[name]; !exists {
 		handlerRegistry[name] = elem
 	}
+}
+
+type handlerRouteMap struct {
+	handlername string
+	route       string
 }
 
 // App handles router and handlers.
@@ -51,7 +61,7 @@ type App struct {
 	router *mux.Router
 
 	// List of handler "names" mapped to route (will be create by a factory)
-	handlers map[*mux.Route]string
+	handlers map[*mux.Route]handlerRouteMap
 
 	// Handler name for error handler.
 	errorHandler string
@@ -69,7 +79,7 @@ func NewApp(config *Config) *App {
 	a := &App{
 		Config:   config,
 		router:   mux.NewRouter(),
-		handlers: make(map[*mux.Route]string),
+		handlers: make(map[*mux.Route]handlerRouteMap),
 		Context:  make(map[string]interface{}),
 	}
 
@@ -248,6 +258,11 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if the method have parameters, we can try to call it.
+	if app.callMethodWithParameters(r, handler, route, &match) {
+		return
+	}
+
 	// we should NEVER go to this, but in case of...
 	details := "" +
 		fmt.Sprintf("Registry: %+v\n", handlerManagerRegistry) +
@@ -327,7 +342,7 @@ func (app *App) addRoute(route string, handler WebHandler, routename string) {
 	r := app.router.NewRoute()
 	r.Path(route)
 	r.Name(name)
-	app.handlers[r] = name
+	app.handlers[r] = handlerRouteMap{name, route}
 
 	app.handle(handler, name)
 }
@@ -410,4 +425,65 @@ func (app *App) Error(status int, w http.ResponseWriter, err error, details ...i
 	handler.(HTTPErrorHandler).setError(err)
 	handler.(HTTPErrorHandler).setDetails(details)
 	handler.(HTTPRequestHandler).Get()
+}
+
+// Try to call method with parameters (if found)
+func (app *App) callMethodWithParameters(r *http.Request, handler WebHandler, route *mux.Route, match *mux.RouteMatch) bool {
+
+	h := reflect.ValueOf(handler)
+	method := h.MethodByName(strings.Title(strings.ToLower(r.Method)))
+	if method.Kind() == reflect.Invalid {
+		return false
+	}
+
+	// if method is not a parametrized method, return false
+	if method.Type().NumIn() == 0 {
+		return false
+	}
+
+	maps := urlParamRegexp.FindAllStringSubmatch(app.handlers[route].route, -1)
+	// build reflect.Value from match.Vars
+	args := []reflect.Value{}
+	for _, v := range maps {
+		args = append(args, reflect.ValueOf(match.Vars[v[1]]))
+	}
+
+	// convert parameters, for now we can manage string (default), float, int and bool
+	for i := 0; i < method.Type().NumIn(); i++ {
+		typ := method.Type().In(i)      // function arg type
+		arg := reflect.ValueOf(args[i]) // argument to map
+
+		switch typ.Kind() {
+		case reflect.Float32, reflect.Float64:
+			v, err := strconv.ParseFloat(args[i].String(), 10)
+			if err != nil {
+				panic(err)
+			}
+			arg = reflect.ValueOf(v)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			v, err := strconv.ParseInt(args[i].String(), 10, 64)
+			if err != nil {
+				panic(err)
+			}
+			arg = reflect.ValueOf(v)
+		case reflect.Bool:
+			switch strings.ToLower(args[i].String()) {
+			case "true", "1", "yes", "on":
+				arg = reflect.ValueOf(true)
+			case "false", "0", "no", "off":
+				arg = reflect.ValueOf(false)
+			default:
+				panic(errors.New(fmt.Sprintf("Boolean URL '%s' value is not reconized", args[i])))
+			}
+		}
+
+		// convertion
+		if typ.Kind() != reflect.String {
+			args[i] = arg.Convert(typ)
+		}
+	}
+
+	method.Call(args)
+
+	return true
 }
