@@ -2,6 +2,7 @@ package kwiscale
 
 import (
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -26,6 +27,7 @@ func TestRenderError(t *testing.T) {
 	app := NewApp(&Config{
 		TemplateDir: "./",
 	})
+	log.Println("An error SHOULD appear and it's expected !")
 	app.AddRoute("/", &templateHandler{})
 	app.ServeHTTP(w, r)
 	if w.Code != http.StatusInternalServerError {
