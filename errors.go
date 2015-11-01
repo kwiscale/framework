@@ -96,8 +96,8 @@ func (dh *ErrorHandler) Get() {
 		return
 	}
 
-	dh.GetResponse().WriteHeader(dh.Status())
-	t.Execute(dh.GetResponse(), map[string]interface{}{
+	dh.Response().WriteHeader(dh.Status())
+	t.Execute(dh.Response(), map[string]interface{}{
 		"Status":  dh.Status(),
 		"Error":   dh.GetError(),
 		"Details": dh.Details(),

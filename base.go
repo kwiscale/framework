@@ -12,6 +12,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type PayloadType int
+
+const (
+	JSON PayloadType = iota
+	BYTES
+	STRING
+)
+
 // Enable debug logs.
 var debug = false
 
@@ -25,28 +33,32 @@ func SetDebug(mode bool) {
 type WebHandler interface {
 	setVars(map[string]string, http.ResponseWriter, *http.Request)
 	setApp(*App)
-	GetApp() *App //deprecated
 	App() *App
 	setRoute(*mux.Route)
 	getRequest() *http.Request
 	getResponse() http.ResponseWriter
 
-	GetRequest() *http.Request
-	GetResponse() http.ResponseWriter
+	Request() *http.Request
+	Response() http.ResponseWriter
+
 	GetSession(interface{}) (interface{}, error)
 	SetSession(interface{}, interface{})
 
 	setSessionStore(SessionStore)
 	Init() (status int, message error)
 	Destroy()
-	GetURL(...string) (*url.URL, error)
+	URL(...string) (*url.URL, error)
+	// GetApp() *App                       // deprecated
+	// GetURL(...string) (*url.URL, error) // deprecated
+	// GetRequest() *http.Request          // deprecated
+	// GetResponse() http.ResponseWriter   // deprecated
 }
 
 // BaseHandler is the parent struct of every Handler.
 // Implement WebHandler.
 type BaseHandler struct {
-	Response     http.ResponseWriter
-	Request      *http.Request
+	response     http.ResponseWriter
+	request      *http.Request
 	Vars         map[string]string
 	sessionStore SessionStore
 
@@ -66,8 +78,8 @@ func (r *BaseHandler) Destroy() {}
 // setVars initialize vars from url
 func (r *BaseHandler) setVars(v map[string]string, w http.ResponseWriter, req *http.Request) {
 	r.Vars = v
-	r.Response = w
-	r.Request = req
+	r.response = w
+	r.request = req
 }
 
 // setApp assign App to the handler
@@ -82,21 +94,21 @@ func (b *BaseHandler) setRoute(r *mux.Route) {
 
 // getReponse returns the current response.
 func (r *BaseHandler) getResponse() http.ResponseWriter {
-	return r.Response
+	return r.response
 }
 
 // getRequest returns the current request.
 func (b *BaseHandler) getRequest() *http.Request {
-	return b.Request
+	return b.request
 }
 
-// getReponse returns the current response.
-func (r *BaseHandler) GetResponse() http.ResponseWriter {
+// Reponse returns the current response.
+func (r *BaseHandler) Response() http.ResponseWriter {
 	return r.getResponse()
 }
 
-// getRequest returns the current request.
-func (b *BaseHandler) GetRequest() *http.Request {
+// Request returns the current request.
+func (b *BaseHandler) Request() *http.Request {
 	return b.getRequest()
 }
 
@@ -120,9 +132,9 @@ func (b *BaseHandler) CleanSession() {
 	b.sessionStore.Clean(b)
 }
 
-// GetPayload returns the Body content.
-func (b *BaseHandler) GetPayload() []byte {
-	content, err := ioutil.ReadAll(b.Request.Body)
+// Payload returns the Body content.
+func (b *BaseHandler) Payload() []byte {
+	content, err := ioutil.ReadAll(b.request.Body)
 	if err != nil {
 		return nil
 	}
@@ -130,30 +142,37 @@ func (b *BaseHandler) GetPayload() []byte {
 }
 
 // GetJSONPayload unmarshal body to the "v" interface.
-func (b *BaseHandler) GetJSONPayload(v interface{}) error {
-	return json.Unmarshal(b.GetPayload(), v)
+func (b *BaseHandler) JSONPayload(v interface{}) error {
+	return json.Unmarshal(b.Payload(), v)
 }
 
-// GetPos return the post data for the given "name" argument.
-func (b *BaseHandler) GetPost(name string) string {
-	return b.Request.PostFormValue(name)
+// PostValue returns the post data for the given "name" argument.
+// If POST value is empty, return "def" instead. If no "def" is provided, return an empty string by default.
+func (b *BaseHandler) PostValue(name string, def ...string) string {
+	if res := b.request.PostFormValue(name); res != "" {
+		return res
+	}
+	if len(def) > 0 {
+		return def[0]
+	}
+	return ""
 }
 
-// GetPostValues returns the entire posted values.
-func (b *BaseHandler) GetPostValues() url.Values {
-	b.Request.ParseForm()
-	return b.Request.PostForm
+// PostValues returns the entire posted values.
+func (b *BaseHandler) PostValues() url.Values {
+	b.request.ParseForm()
+	return b.request.PostForm
 }
 
 // GetPostFile returns the "name" file pointer and information from the post data.
 func (b *BaseHandler) GetPostFile(name string) (multipart.File, *multipart.FileHeader, error) {
-	b.Request.ParseForm()
-	return b.Request.FormFile(name)
+	b.request.ParseForm()
+	return b.request.FormFile(name)
 }
 
 // SavePostFile save the given "name" file to the "to" path.
 func (b *BaseHandler) SavePostFile(name, to string) error {
-	b.Request.ParseForm()
+	b.request.ParseForm()
 	file, _, err := b.GetPostFile(name)
 	if err != nil {
 		return err
@@ -171,8 +190,8 @@ func (b *BaseHandler) SavePostFile(name, to string) error {
 	return err
 }
 
-// GetURL return an url based on the declared route and given string pair.
-func (b *BaseHandler) GetURL(s ...string) (*url.URL, error) {
+// URL return an url based on the declared route and given string pair.
+func (b *BaseHandler) URL(s ...string) (*url.URL, error) {
 	return b.route.URL(s...)
 }
 

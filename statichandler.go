@@ -50,20 +50,20 @@ func (s *staticHandler) Get() {
 
 	// control or add etag
 	if etag, err := eTag(file); err == nil {
-		if match, ok := s.Request.Header["If-None-Match"]; ok {
+		if match, ok := s.request.Header["If-None-Match"]; ok {
 			for _, m := range match {
 				if etag == m {
-					s.Response.WriteHeader(http.StatusNotModified)
+					s.response.WriteHeader(http.StatusNotModified)
 					return
 				}
 			}
 		}
-		s.Response.Header().Add("ETag", etag)
+		s.response.Header().Add("ETag", etag)
 	}
 
 	mimetype := mime.TypeByExtension(filepath.Ext(file))
-	s.Response.Header().Add("Content-Type", mimetype)
-	s.Response.Header().Add("Content-Length", fmt.Sprintf("%d", len(content)))
+	s.response.Header().Add("Content-Type", mimetype)
+	s.response.Header().Add("Content-Length", fmt.Sprintf("%d", len(content)))
 	s.Write(content)
 }
 

@@ -81,11 +81,11 @@ func (ws *WebSocketHandler) upgrade() error {
 		WriteBufferSize: 1024,
 	}
 	var err error
-	ws.conn, err = upgrader.Upgrade(ws.Response, ws.Request, nil)
+	ws.conn, err = upgrader.Upgrade(ws.response, ws.request, nil)
 	if err == nil {
 
 		// record room and append connection
-		path := ws.Request.URL.Path
+		path := ws.request.URL.Path
 		room := getRoom(path)
 		room.add(ws)
 	}
@@ -134,7 +134,7 @@ func (ws *WebSocketHandler) SendText(s string) error {
 // SendJSONToThisRoom send interface "i" in json form to the client connected
 // to the same room of the current client connection.
 func (ws *WebSocketHandler) SendJSONToThisRoom(i interface{}) {
-	ws.SendJSONToRoom(ws.Request.URL.Path, i)
+	ws.SendJSONToRoom(ws.request.URL.Path, i)
 }
 
 // SendJSONToRoom send the interface "i" in json form to the client connected
@@ -156,7 +156,7 @@ func (ws *WebSocketHandler) SendJSONToAll(i interface{}) {
 // SendTextToThisRoom send message s to the room of the
 // current client connection.
 func (ws *WebSocketHandler) SendTextToThisRoom(s string) {
-	ws.SendTextToRoom(ws.Request.URL.Path, s)
+	ws.SendTextToRoom(ws.request.URL.Path, s)
 }
 
 // SendTextToRoom send message "s" to the room named "name".
@@ -176,10 +176,10 @@ func (ws *WebSocketHandler) SendTextToAll(s string) {
 // Close connection after having removed handler from the rooms stack.
 func (ws *WebSocketHandler) Close() {
 	defer ws.conn.Close()
-	if room, ok := rooms[ws.Request.URL.Path]; ok {
+	if room, ok := rooms[ws.request.URL.Path]; ok {
 		room.remove(ws)
 		if len(room.conns) == 0 {
-			delete(rooms, ws.Request.URL.Path)
+			delete(rooms, ws.request.URL.Path)
 		}
 	}
 }

@@ -36,7 +36,7 @@ func (th *TestReverseRoute) Get() {
 		t.Error("Route from app is not /product/test: ", u)
 	}
 
-	route, err := th.GetURL("category", "foo")
+	route, err := th.URL("category", "foo")
 	if err != nil {
 		fmt.Println(err)
 	}

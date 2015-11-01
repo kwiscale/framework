@@ -76,7 +76,7 @@ func (r *RequestHandler) Trace() {
 
 // Write is an alias to RequestHandler.Request.Write. That implements io.Writer.
 func (r *RequestHandler) Write(data []byte) (int, error) {
-	return r.Response.Write(data)
+	return r.response.Write(data)
 }
 
 // WriteString is converts param to []byte then use Write method.
@@ -91,13 +91,13 @@ func (r *RequestHandler) WriteJSON(data interface{}) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-	r.Response.Header().Add("Content-Type", "application/json")
+	r.response.Header().Add("Content-Type", "application/json")
 	return r.Write(b)
 }
 
 // Stauts write int status to header (use htt.StatusXXX as status).
 func (r *RequestHandler) Status(status int) {
-	r.Response.WriteHeader(status)
+	r.response.WriteHeader(status)
 }
 
 // Render calls assigned template engine Render method.
@@ -118,7 +118,7 @@ func (r *RequestHandler) Render(file string, ctx map[string]interface{}) error {
 
 // redirect client with http status.
 func (r *RequestHandler) redirect(uri string, status int) {
-	r.Response.Header().Add("Location", uri)
+	r.response.Header().Add("Location", uri)
 	if status < 0 {
 		// by default, we use SeeOther status. This status
 		// should change HTTP verb to GET
@@ -138,5 +138,5 @@ func (r *RequestHandler) RedirectWithStatus(uri string, status int) {
 }
 
 func (r *RequestHandler) Error(status int, message string, details ...interface{}) {
-	r.App().Error(status, r.Response, errors.New(message), details...)
+	r.App().Error(status, r.response, errors.New(message), details...)
 }
