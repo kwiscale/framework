@@ -148,6 +148,7 @@ func (a *App) SetStatic(prefix string) {
 	path, _ := filepath.Abs(prefix)
 	prefix = filepath.Base(path)
 	s := &staticHandler{}
+	s.prefix = prefix
 	a.AddNamedRoute("/"+prefix+"/{file:.*}", s, "statics")
 }
 

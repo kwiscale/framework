@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io/ioutil"
-	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 type staticHandler struct {
 	RequestHandler
 	cacheEnabled bool
+	prefix       string
 }
 
 var cache = make(map[string][]byte)
@@ -25,46 +25,18 @@ func (s *staticHandler) putInCache(f string) {
 	}
 }
 
+// Use http.FileServer to serve file after adding ETag.
 func (s *staticHandler) Get() {
 	file := s.Vars["file"]
 	file = filepath.Join(s.app.Config.StaticDir, file)
 
-	var (
-		content []byte
-		err     error
-		exists  bool
-	)
-
-	if s.cacheEnabled {
-		if content, exists = cache[file]; !exists {
-			go s.putInCache(file)
-		}
-	}
-	// not in cache or cache is disable
-	if content == nil {
-		if content, err = ioutil.ReadFile(file); err != nil {
-			s.App().Error(http.StatusNotFound, s.getResponse(), err)
-			return
-		}
-	}
-
 	// control or add etag
 	if etag, err := eTag(file); err == nil {
-		if match, ok := s.request.Header["If-None-Match"]; ok {
-			for _, m := range match {
-				if etag == m {
-					s.response.WriteHeader(http.StatusNotModified)
-					return
-				}
-			}
-		}
 		s.response.Header().Add("ETag", etag)
 	}
 
-	mimetype := mime.TypeByExtension(filepath.Ext(file))
-	s.response.Header().Add("Content-Type", mimetype)
-	s.response.Header().Add("Content-Length", fmt.Sprintf("%d", len(content)))
-	s.Write(content)
+	fs := http.FileServer(http.Dir(s.prefix))
+	fs.ServeHTTP(s.Response(), s.Request())
 }
 
 // Get a etag for the file. It's constuct with a md5 sum of
