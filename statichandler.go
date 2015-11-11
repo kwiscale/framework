@@ -3,7 +3,6 @@ package kwiscale
 import (
 	"crypto/md5"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,17 +11,6 @@ import (
 // StaticHandler handle static files handlers. Use App.SetStatic(path) that create the static handler
 type staticHandler struct {
 	RequestHandler
-	cacheEnabled bool
-	prefix       string
-}
-
-var cache = make(map[string][]byte)
-
-func (s *staticHandler) putInCache(f string) {
-	content, err := ioutil.ReadFile(f)
-	if err != nil {
-		cache[f] = content
-	}
 }
 
 // Use http.FileServer to serve file after adding ETag.
@@ -35,8 +23,8 @@ func (s *staticHandler) Get() {
 		s.response.Header().Add("ETag", etag)
 	}
 
-	fs := http.FileServer(http.Dir(s.prefix))
-	fs.ServeHTTP(s.Response(), s.Request())
+	fs := http.FileServer(http.Dir(s.app.Config.StaticDir))
+	fs.ServeHTTP(s.response, s.request)
 }
 
 // Get a etag for the file. It's constuct with a md5 sum of
