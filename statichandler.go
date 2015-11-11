@@ -16,15 +16,19 @@ type staticHandler struct {
 // Use http.FileServer to serve file after adding ETag.
 func (s *staticHandler) Get() {
 	file := s.Vars["file"]
-	file = filepath.Join(s.app.Config.StaticDir, file)
+	abs, _ := filepath.Abs(s.app.Config.StaticDir)
+	file = filepath.Join(abs, file)
 
 	// control or add etag
 	if etag, err := eTag(file); err == nil {
 		s.response.Header().Add("ETag", etag)
 	}
 
+	// create a fileserver for the static dir
 	fs := http.FileServer(http.Dir(s.app.Config.StaticDir))
-	fs.ServeHTTP(s.response, s.request)
+	// stip directory name and serve the file
+	http.StripPrefix("/"+filepath.Base(s.app.Config.StaticDir), fs).
+		ServeHTTP(s.Response(), s.Request())
 }
 
 // Get a etag for the file. It's constuct with a md5 sum of
