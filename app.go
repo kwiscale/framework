@@ -31,7 +31,6 @@ var urlParamRegexp = regexp.MustCompile(`\{(.+?):`)
 func Register(h WebHandler) {
 	elem := reflect.ValueOf(h).Elem().Type()
 	name := elem.String()
-	Log("Registering", name)
 	if _, exists := handlerRegistry[name]; !exists {
 		handlerRegistry[name] = elem
 	}
@@ -134,21 +133,21 @@ func NewAppFromConfigFile(filename ...string) *App {
 }
 
 // ListenAndServe calls http.ListenAndServe method
-func (a *App) ListenAndServe(port ...string) {
-	p := a.Config.Port
+func (app *App) ListenAndServe(port ...string) {
+	p := app.Config.Port
 	if len(port) > 0 {
 		p = port[0]
 	}
 	log.Println("Listening", p)
-	log.Fatal(http.ListenAndServe(p, a))
+	log.Fatal(http.ListenAndServe(p, app))
 }
 
 // SetStatic set the route "prefix" to serve files configured in Config.StaticDir
-func (a *App) SetStatic(prefix string) {
+func (app *App) SetStatic(prefix string) {
 	path, _ := filepath.Abs(prefix)
 	prefix = filepath.Base(path)
 	s := &staticHandler{}
-	a.AddNamedRoute("/"+prefix+"/{file:.*}", s, "statics")
+	app.AddNamedRoute("/"+prefix+"/{file:.*}", s, "statics")
 }
 
 // Implement http.Handler ServeHTTP method.
@@ -362,8 +361,8 @@ func (app *App) SoftStop() chan int {
 }
 
 // GetRoute return the *mux.Route that have the given name.
-func (a *App) GetRoute(name string) *mux.Route {
-	for route, _ := range a.handlers {
+func (app *App) GetRoute(name string) *mux.Route {
+	for route := range app.handlers {
 		if route.GetName() == name {
 			return route
 		}
@@ -372,19 +371,19 @@ func (a *App) GetRoute(name string) *mux.Route {
 }
 
 // GetTemplate returns a new instance of Template.
-func (a *App) GetTemplate() Template {
-	engine := templateEngine[a.Config.TemplateEngine]
+func (app *App) GetTemplate() Template {
+	engine := templateEngine[app.Config.TemplateEngine]
 	//ttype := reflect.TypeOf(engine)
 	t := reflect.New(engine).Interface().(Template)
-	t.SetTemplateDir(a.Config.TemplateDir)
-	t.SetTemplateOptions(a.Config.TemplateEngineOptions)
+	t.SetTemplateDir(app.Config.TemplateDir)
+	t.SetTemplateOptions(app.Config.TemplateEngineOptions)
 	return t
 }
 
 // GetRoutes get all routes for a handler
-func (a *App) GetRoutes(name string) []*mux.Route {
-	routes := make([]*mux.Route, 0)
-	for route, _ := range a.handlers {
+func (app *App) GetRoutes(name string) []*mux.Route {
+	routes := []*mux.Route{}
+	for route := range app.handlers {
 		if route.GetName() == name {
 			routes = append(routes, route)
 		}
@@ -473,7 +472,7 @@ func (app *App) callMethodWithParameters(r *http.Request, handler WebHandler, ro
 			case "false", "0", "no", "off":
 				arg = reflect.ValueOf(false)
 			default:
-				panic(errors.New(fmt.Sprintf("Boolean URL '%s' value is not reconized", args[i])))
+				panic(fmt.Errorf("Boolean URL '%s' value is not reconized", args[i]))
 			}
 		}
 
