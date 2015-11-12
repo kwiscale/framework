@@ -16,12 +16,12 @@ func (b *BaseHandler) GetApp() *App {
 	return b.App()
 }
 
-// GetReponse returns the current response.
+// GetResponse returns the current response.
 //
 // DEPRECATED -- see Response()
-func (r *BaseHandler) GetResponse() http.ResponseWriter {
+func (b *BaseHandler) GetResponse() http.ResponseWriter {
 	log.Println("[WARN] GetResponse() is deprecated, please use Response() method instead.")
-	return r.Response()
+	return b.Response()
 }
 
 // GetRequest returns the current request.
@@ -32,7 +32,7 @@ func (b *BaseHandler) GetRequest() *http.Request {
 	return b.Request()
 }
 
-// GetPos return the post data for the given "name" argument.
+// GetPost return the post data for the given "name" argument.
 //
 // DEPRECATED -- see PostVar()
 func (b *BaseHandler) GetPost(name string) string {
@@ -70,4 +70,12 @@ func (b *BaseHandler) GetPostValues() url.Values {
 func (b *BaseHandler) GetJSONPayload(v interface{}) error {
 	log.Println("[WARN] GetJSONPayload() is deprecated, please use JSONPayload() method instead.")
 	return b.JSONPayload(v)
+}
+
+// GlobalCtx Returns global template context.
+//
+// Deprecated: use handler.App().Context instead
+func (b *RequestHandler) GlobalCtx() map[string]interface{} {
+	log.Println("[WARN] GlobalCtx() is deprecated, please use App().Context instead.")
+	return b.App().Context
 }

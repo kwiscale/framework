@@ -29,11 +29,6 @@ type RequestHandler struct {
 	BaseHandler
 }
 
-// GlobalCtx Returns global template context.
-func (r *RequestHandler) GlobalCtx() map[string]interface{} {
-	return r.App().Context
-}
-
 // Get implements IRequestHandler Method - default "not found".
 func (r *RequestHandler) Get() {
 	r.App().Error(http.StatusNotFound, r.getResponse(), ErrNotFound)
