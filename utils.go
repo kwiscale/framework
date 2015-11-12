@@ -8,12 +8,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Log print logs on STDOUT if debug is activated.
 func Log(v ...interface{}) {
 	if debug {
 		log.Println(v...)
 	}
 }
 
+// Error prints error on STDOUT.
 func Error(v ...interface{}) {
 	msg := []interface{}{"[ERROR]"}
 	msg = append(msg, v...)

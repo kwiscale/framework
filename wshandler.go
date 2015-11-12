@@ -36,7 +36,7 @@ func (room *wsroom) remove(c *WebSocketHandler) {
 	}
 }
 
-// WSHander is the base interface to implement to be able to use
+// WSHandler is the base interface to implement to be able to use
 // Websocket.
 type WSHandler interface {
 	// Serve is the method to implement inside the project
@@ -47,7 +47,7 @@ type WSHandler interface {
 	Close()
 }
 
-// WebsockerHandler type to compose a web socket handler.
+// WebSocketHandler type to compose a web socket handler.
 // To use it, compose a handler with this type and implement one of
 // OnJSON(), OnMessage() or Serve() method.
 // Example:
@@ -111,12 +111,12 @@ func (ws *WebSocketHandler) Write(b []byte) error {
 	return ws.conn.WriteMessage(websocket.TextMessage, b)
 }
 
-// Alias to SendText
+// WriteString is an alias to SendText.
 func (ws *WebSocketHandler) WriteString(m string) error {
 	return ws.SendText(m)
 }
 
-// Alias for SendJSON
+// WriteJSON is an alias for SendJSON.
 func (ws *WebSocketHandler) WriteJSON(i interface{}) error {
 	return ws.SendJSON(i)
 }
@@ -140,7 +140,7 @@ func (ws *WebSocketHandler) SendJSONToThisRoom(i interface{}) {
 // SendJSONToRoom send the interface "i" in json form to the client connected
 // to the the room named "name".
 func (ws *WebSocketHandler) SendJSONToRoom(room string, i interface{}) {
-	for w, _ := range rooms[room].conns {
+	for w := range rooms[room].conns {
 		w.SendJSON(i)
 	}
 }
@@ -148,7 +148,7 @@ func (ws *WebSocketHandler) SendJSONToRoom(room string, i interface{}) {
 // SendJSONToAll send the interface "i" in json form to the entire
 // client list.
 func (ws *WebSocketHandler) SendJSONToAll(i interface{}) {
-	for name, _ := range rooms {
+	for name := range rooms {
 		ws.SendJSONToRoom(name, i)
 	}
 }
@@ -161,14 +161,14 @@ func (ws *WebSocketHandler) SendTextToThisRoom(s string) {
 
 // SendTextToRoom send message "s" to the room named "name".
 func (ws *WebSocketHandler) SendTextToRoom(name, s string) {
-	for w, _ := range rooms[name].conns {
+	for w := range rooms[name].conns {
 		w.SendText(s)
 	}
 }
 
 // SendTextToAll send message "s" to the entire list of connected clients.
 func (ws *WebSocketHandler) SendTextToAll(s string) {
-	for name, _ := range rooms {
+	for name := range rooms {
 		ws.SendTextToRoom(name, s)
 	}
 }
@@ -184,18 +184,18 @@ func (ws *WebSocketHandler) Close() {
 	}
 }
 
-// If WebSocketHandler implements WSServerHandler,
+// WSServerHandler interface to serve continuously.
 type WSServerHandler interface {
 	Serve()
 }
 
-// If WebSocketHandler implements WSJsonHandler, framework will
+// WSJsonHandler interface, framework will
 // read socket and call OnJSON each time a json message is received.
 type WSJsonHandler interface {
 	OnJSON(interface{}, error)
 }
 
-// if WebSocketHandler implements WSStringHandler, framework
+// WSStringHandler interface, framework
 // will read socket and call OnMessage() each time a string is received.
 type WSStringHandler interface {
 	OnMessage(int, string, error)

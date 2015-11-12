@@ -13,7 +13,7 @@ import (
 
 var templateEngine = make(map[string]reflect.Type)
 
-// Options to pass to template engines if needed
+// TplOptions are template options to pass to template engines if needed
 type TplOptions map[string]interface{}
 
 // RegisterTemplateEngine records template engine that implements Template
@@ -41,12 +41,13 @@ type Template interface {
 	SetTemplateOptions(TplOptions)
 }
 
-// Basic template engine that use html/template
+// BuiltInTemplate is Basic template engine that use html/template.
 type BuiltInTemplate struct {
 	files  []string
 	tpldir string
 }
 
+// SetTemplateDir set the directory where are found templates.
 func (tpl *BuiltInTemplate) SetTemplateDir(path string) {
 	t, err := filepath.Abs(path)
 
@@ -93,12 +94,12 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 			return url.String()
 		},
 		"url": func(handler string, args ...interface{}) string {
-			pairs := make([]string, 0)
+			pairs := []string{}
 			for _, p := range args {
 				pairs = append(pairs, fmt.Sprintf("%v", p))
 			}
 			h := w.(WebHandler).App().GetRoutes(handler)
-			base := make([]string, 0)
+			base := []string{}
 			for _, r := range h {
 				url, err := r.URL(pairs...)
 				if err != nil {
@@ -131,7 +132,8 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 	return err
 }
 
-// Template is basic, it doesn't need options
+// SetTemplateOptions set needed options to template engine. For BuiltInTemplate
+// there are no option at this time.
 func (tpl *BuiltInTemplate) SetTemplateOptions(TplOptions) {}
 
 // parseOverride will append overriden templates to be integrating in the

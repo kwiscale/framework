@@ -12,18 +12,22 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// PayloadType represents a payload type for Websocket.
 type PayloadType int
 
 const (
+	// JSON payload type in Websocket.
 	JSON PayloadType = iota
+	// BYTES payload type in Websocket.
 	BYTES
+	// STRING payload type in Websocket.
 	STRING
 )
 
 // Enable debug logs.
 var debug = false
 
-// Change debug mode
+// SetDebug changes debug mode.
 func SetDebug(mode bool) {
 	debug = mode
 }
@@ -70,23 +74,23 @@ type BaseHandler struct {
 
 // Init is called before the begin of response (before Get, Post, and so on).
 // If error is not nil, framework will write response with the second argument as http status.
-func (r *BaseHandler) Init() (int, error) {
+func (b *BaseHandler) Init() (int, error) {
 	return -1, nil
 }
 
 // Destroy is called as defered function after response.
-func (r *BaseHandler) Destroy() {}
+func (b *BaseHandler) Destroy() {}
 
 // setVars initialize vars from url
-func (r *BaseHandler) setVars(v map[string]string, w http.ResponseWriter, req *http.Request) {
-	r.Vars = v
-	r.response = w
-	r.request = req
+func (b *BaseHandler) setVars(v map[string]string, w http.ResponseWriter, req *http.Request) {
+	b.Vars = v
+	b.response = w
+	b.request = req
 }
 
 // setApp assign App to the handler
-func (r *BaseHandler) setApp(a *App) {
-	r.app = a
+func (b *BaseHandler) setApp(a *App) {
+	b.app = a
 }
 
 // setRoute register mux.Route in the handler.
@@ -95,8 +99,8 @@ func (b *BaseHandler) setRoute(r *mux.Route) {
 }
 
 // getReponse returns the current response.
-func (r *BaseHandler) getResponse() http.ResponseWriter {
-	return r.response
+func (b *BaseHandler) getResponse() http.ResponseWriter {
+	return b.response
 }
 
 // getRequest returns the current request.
@@ -104,9 +108,9 @@ func (b *BaseHandler) getRequest() *http.Request {
 	return b.request
 }
 
-// Reponse returns the current response.
-func (r *BaseHandler) Response() http.ResponseWriter {
-	return r.getResponse()
+// Response returns the current response.
+func (b *BaseHandler) Response() http.ResponseWriter {
+	return b.getResponse()
 }
 
 // Request returns the current request.
@@ -143,7 +147,7 @@ func (b *BaseHandler) Payload() []byte {
 	return content
 }
 
-// GetJSONPayload unmarshal body to the "v" interface.
+// JSONPayload unmarshal body to the "v" interface.
 func (b *BaseHandler) JSONPayload(v interface{}) error {
 	return json.Unmarshal(b.Payload(), v)
 }
@@ -197,7 +201,7 @@ func (b *BaseHandler) URL(s ...string) (*url.URL, error) {
 	return b.route.URL(s...)
 }
 
-// App() returns the current application.
+// App returns the current application.
 func (b *BaseHandler) App() *App {
 	return b.app
 }

@@ -95,7 +95,7 @@ func (r *RequestHandler) WriteJSON(data interface{}) (int, error) {
 	return r.Write(b)
 }
 
-// Stauts write int status to header (use htt.StatusXXX as status).
+// Status write int status to header (use htt.StatusXXX as status).
 func (r *RequestHandler) Status(status int) {
 	r.response.WriteHeader(status)
 }

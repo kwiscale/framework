@@ -8,6 +8,7 @@ import (
 
 var sessionEngine = make(map[string]SessionStore, 0)
 
+// SessionEngineOptions set options for session engine.
 type SessionEngineOptions map[string]interface{}
 
 // RegisterSessionEngine can register session engine that implements
@@ -21,7 +22,7 @@ func init() {
 	RegisterSessionEngine("default", &CookieSessionStore{})
 }
 
-// ISessionStore to implement to give a session storage
+// SessionStore to implement to give a session storage
 type SessionStore interface {
 	// Init is called when store is initialized while App is initialized
 	Init()
@@ -47,7 +48,7 @@ type SessionStore interface {
 	Clean(WebHandler)
 }
 
-// SessionStore is a basic cookie based on gorilla.session.
+// CookieSessionStore is a basic cookie based on gorilla.session.
 type CookieSessionStore struct {
 	store  *sessions.CookieStore
 	name   string
@@ -93,6 +94,7 @@ func (s *CookieSessionStore) Set(handler WebHandler, key interface{}, val interf
 	session.Save(handler.getRequest(), handler.getResponse())
 }
 
+// Clean removes the entire session values for current session.
 func (s *CookieSessionStore) Clean(handler WebHandler) {
 	session, _ := s.store.Get(handler.getRequest(), s.name)
 	session.Values = make(map[interface{}]interface{})

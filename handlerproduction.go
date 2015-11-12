@@ -44,5 +44,4 @@ func (manager handlerManager) produceHandlers() {
 			break
 		}
 	}
-	Log("Quitting ", manager.handler, "producer")
 }

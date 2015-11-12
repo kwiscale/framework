@@ -7,9 +7,12 @@ import (
 )
 
 var (
-	ErrNotFound       = errors.New("Not found")
+	// ErrNotFound error type.
+	ErrNotFound = errors.New("Not found")
+	// ErrNotImplemented error type.
 	ErrNotImplemented = errors.New("Not implemented")
-	ErrInternalError  = errors.New("Internal server error")
+	// ErrInternalError for internal error.
+	ErrInternalError = errors.New("Internal server error")
 )
 
 // HTTPErrorHandler interface.
