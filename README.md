@@ -1,6 +1,7 @@
 kwiscale
 ========
 
+[![Build Status](https://drone.io/github.com/kwiscale/framework/status.png)](https://drone.io/github.com/kwiscale/framework/latest)
 [![GoDoc](https://godoc.org/gopkg.in/kwiscale/framework.v1?status.svg)](https://godoc.org/gopkg.in/kwiscale/framework.v1)
 
 
