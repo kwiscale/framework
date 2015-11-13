@@ -3,8 +3,8 @@ kwiscale
 
 [![Build Status](https://drone.io/github.com/kwiscale/framework/status.png)](https://drone.io/github.com/kwiscale/framework/latest)
 [![Coverage Status](https://coveralls.io/repos/kwiscale/framework/badge.svg?branch=master&service=github)](https://coveralls.io/github/kwiscale/framework?branch=master)
+[![Documentation Status](https://readthedocs.org/projects/kwiscale/badge/?version=latest)](http://kwiscale.readthedocs.org/en/latest/?badge=latest)
 [![GoDoc](https://godoc.org/gopkg.in/kwiscale/framework.v1?status.svg)](https://godoc.org/gopkg.in/kwiscale/framework.v1)
-
 
 Web Middleware for Golang
 
