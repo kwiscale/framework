@@ -2,6 +2,7 @@ kwiscale
 ========
 
 [![Build Status](https://drone.io/github.com/kwiscale/framework/status.png)](https://drone.io/github.com/kwiscale/framework/latest)
+[![Coverage Status](https://coveralls.io/repos/kwiscale/framework/badge.svg?branch=master&service=github)](https://coveralls.io/github/kwiscale/framework?branch=master)
 [![GoDoc](https://godoc.org/gopkg.in/kwiscale/framework.v1?status.svg)](https://godoc.org/gopkg.in/kwiscale/framework.v1)
 
 
@@ -16,7 +17,7 @@ Features
 - Implement your handlers as structs with HTTP Verbs as method
 - Plugin system for template engines, session engines and ORM
 - Use gorilla to manipulate routes and mux
-- Handler spawned with concurrency 
+- Handler spawned with concurrency
 
 
 How to use
@@ -111,7 +112,7 @@ Then run:
     go run main.go
 
 Or build your project:
-    
+
     go build main.go
     ./main
 
@@ -143,7 +144,7 @@ If you plan to have a complete override system, please use http://gopkg.in/kwisc
 See the following example.
 
 Append templates directory:
-    
+
     mkdir templates
 
 Then create templates/main.html:
@@ -161,7 +162,7 @@ Then create templates/main.html:
 </html>
 ```
 Now create templates/home directory:
-    
+
     mkdir templates/home
 
 Create templates/home/welcome.html:
