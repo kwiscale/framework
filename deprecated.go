@@ -36,7 +36,7 @@ func (b *BaseHandler) GetRequest() *http.Request {
 //
 // DEPRECATED -- see PostVar()
 func (b *BaseHandler) GetPost(name string) string {
-	log.Println("[WARN] GetPost() is deprecated, please use PostVar() method instead.")
+	log.Println("[WARN] GetPost() is deprecated, please use PostValue() method instead.")
 	return b.PostValue(name, "")
 }
 
