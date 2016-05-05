@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -106,10 +107,18 @@ func NewAppFromConfigFile(filename ...string) *App {
 	if len(filename) > 1 {
 		panic(errors.New("You should give only one file in NewAppFromConfigFile"))
 	}
-	file := "config.yml"
+
+	file := "kwiscale.yml"
+
 	if len(filename) > 0 {
 		file = filename[0]
+	} else {
+		if _, err := os.Stat("config.yml"); err == nil {
+			log.Println("[WARN] - congig.yml is deprecated, please move to kwiscale.yml")
+			file = "config.yml"
+		}
 	}
+
 	content, err := ioutil.ReadFile(file)
 	if err != nil {
 		panic(err)
