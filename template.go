@@ -43,8 +43,9 @@ type Template interface {
 
 // BuiltInTemplate is Basic template engine that use html/template.
 type BuiltInTemplate struct {
-	files  []string
-	tpldir string
+	files   []string
+	tpldir  string
+	funcMap template.FuncMap
 }
 
 // SetTemplateDir set the directory where are found templates.
@@ -134,7 +135,13 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 
 // SetTemplateOptions set needed options to template engine. For BuiltInTemplate
 // there are no option at this time.
-func (tpl *BuiltInTemplate) SetTemplateOptions(TplOptions) {}
+func (tpl *BuiltInTemplate) SetTemplateOptions(opts TplOptions) {
+	if m, ok := opts["funcs"]; ok {
+		for name, fn := range m.(template.FuncMap) {
+			tpl.funcMap[name] = fn
+		}
+	}
+}
 
 // parseOverride will append overriden templates to be integrating in the
 // template list to render
