@@ -85,42 +85,44 @@ func (tpl *BuiltInTemplate) Render(w io.Writer, file string, ctx interface{}) er
 
 	Log(tpl.files)
 
-	funcmap := template.FuncMap{
-		"static": func(file string) string {
-			app := w.(WebHandler).App()
-			url, err := app.GetRoute("statics").URL("file", file)
+	if tpl.funcMap == nil {
+		tpl.funcMap = template.FuncMap{}
+	}
+
+	tpl.funcMap["static"] = func(file string) string {
+		app := w.(WebHandler).App()
+		url, err := app.GetRoute("statics").URL("file", file)
+		if err != nil {
+			return err.Error()
+		}
+		return url.String()
+	}
+	tpl.funcMap["url"] = func(handler string, args ...interface{}) string {
+		pairs := []string{}
+		for _, p := range args {
+			pairs = append(pairs, fmt.Sprintf("%v", p))
+		}
+		h := w.(WebHandler).App().GetRoutes(handler)
+		base := []string{}
+		for _, r := range h {
+			url, err := r.URL(pairs...)
 			if err != nil {
-				return err.Error()
+				continue
 			}
-			return url.String()
-		},
-		"url": func(handler string, args ...interface{}) string {
-			pairs := []string{}
-			for _, p := range args {
-				pairs = append(pairs, fmt.Sprintf("%v", p))
+			route := strings.Split(url.String(), "/")
+			if len(route) >= len(base) {
+				base = route
 			}
-			h := w.(WebHandler).App().GetRoutes(handler)
-			base := []string{}
-			for _, r := range h {
-				url, err := r.URL(pairs...)
-				if err != nil {
-					continue
-				}
-				route := strings.Split(url.String(), "/")
-				if len(route) >= len(base) {
-					base = route
-				}
-			}
-			if len(base) == 0 {
-				return "handler url not realized - please check"
-			}
-			return strings.Join(base, "/")
-		},
+		}
+		if len(base) == 0 {
+			return "handler url not realized - please check"
+		}
+		return strings.Join(base, "/")
 	}
 
 	t, err := template.
 		New(filepath.Base(tpl.files[0])).
-		Funcs(funcmap).
+		Funcs(tpl.funcMap).
 		ParseFiles(tpl.files...)
 
 	// panic if template breaks in parse
