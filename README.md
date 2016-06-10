@@ -28,112 +28,47 @@ How to use
 Install with "go get" command:
 
     go get gopkg.in/kwiscale/framework.v1
+    go get gopkg.in/kwiscale/framework.v1/cmd/kwiscale
 
 Create a project:
 
-    mkdir ~/myproject && cd ~/myproject
+    kwiscale new app myapp
+    cd $GOPATH/myapp
 
-The common way to create handlers is to append a package::
+Create a handler
+    kwiscale new handler index / homepage
 
-    mkdir handlers
-    vim handlers/index.go
-
-Let's try an example:
+Open generated `handlers/index.go` and append "Get" method:
 
 ```go
 package handlers
 
-import "gopkg.in/kwiscale/framework.v1"
-
-// this is the Index Handler that
-// is composed by a RequestHandler
-type IndexHandler struct {
-    // compose your handler with kwiscale.Handler
-    kwiscale.RequestHandler
-}
-
-// Will respond to GET request. "params" are url params (not GET and POST data)
-func (i *IndexHandler) Get () {
-    i.WriteString("Hello !" + i.Vars["userid"])
-}
-```
-
-Then in you main.go::
-
-```go
-
-package main
-
 import (
-    "gopkg.in/kwiscale/framework.v1"
-    "./handlers"
+	"gopkg.in/kwiscale/framework.v1"
 )
 
-// HomeHandler
-type HomeHandler struct {
-	kwiscale.RequestHandler
+
+func init(){
+	kwiscale.Register(&IndexHandler{})
 }
 
-// Get respond to GET request
-func (h *HomeHandler) Get (){
-	h.WriteString("reponse to GET home")
+type IndexHandler struct { kwiscale.RequestHandler }
+
+func (handler *IndexHandler) Get(){
+    handler.WriteString("Hello you !")
 }
 
-// Another handler
-type OtherHandler struct {
-	kwiscale.RequestHandler
-}
-
-func (o *OtherHandler) Get (){
-	// read url params
-	// it always returns a string !
-	userid := o.Vars["userid"]
-	o.WriteString(fmt.Printf("Hello user %s", userid))
-}
-
-
-func main() {
-	kwiscale.DEBUG = true
-	app := kwiscale.NewApp(&kswicale.Config{
-        Port: ":8000",
-    })
-	app.AddRoute("/", HomeHandler{})
-	app.AddRoute("/user/{userid:[0-9]+}", OtherHandler{})
-    app.ListenAndServe()
-
-    // note: App respects http.Mux so you can use:
-    // http.ListenAndServe(":9999", app)
-    // to override behaviors, testing, or if your infrastructure
-    // restricts this usage
-}
 ```
 
+And run the app !:
 
-Then run:
+```bash
+go run *.go
+```
 
-    go run main.go
+Now, go to http://127.0.0.1:8000 - you should see "Hello You!". If not, check "kwiscale.yml" file if port is "8000", check error log, and so on.
 
-Or build your project:
-
-    go build main.go
-    ./main
-
-
-- Visit http://127.0.0.1:8000/ and you should see "Hello FOO"
-- Visit http://127.0.0.1:8000/user/12345 and you should see "Hello user 12345"
-
-
-The Kwiscale way ?
-==================
-
-Kwiscale let you declare Handler methods with the HTTP method. This allows you to declare:
-
-* Get()
-* Post()
-* Head()
-* Delete()
-* Put()
-* Patch()
+If really there is a problem, please submit an issue.
 
 
 Basic Templates

@@ -4,6 +4,7 @@ Kwiscale command line interface.
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -18,10 +19,14 @@ import (
 var GOPATH = os.Getenv("GOPATH")
 
 const (
-	PROJECT_OPT     = "project"      // argument to set project name
-	HANDLER_OPT     = "handlers"     // argument to set handlers name
-	PROJECT_DEFAULT = "kwiscale-app" // default project name
-	HANDLER_DEFAULT = "handlers"     // default handlers package name
+	PROJECT_OPT           = "project"      // argument to set project name
+	HANDLER_OPT           = "handlers"     // argument to set handlers name
+	PROJECT_DEFAULT       = "kwiscale-app" // default project name
+	HANDLER_DEFAULT       = "handlers"     // default handlers package name
+	DEPRECATED_CONFIGNAME = "config.yml"   // deprecated configuration filename
+	CONFIGNAME            = "kwiscale.yml" // configname
+	FILEMODE              = 0664
+	DIRMODE               = 0775
 )
 
 type ymlstruct map[string]interface{}
@@ -85,7 +90,7 @@ func newApplication(c *cli.Context) {
 	createApp(c)
 }
 
-// add handler in config.yml
+// add handler in yml
 func newHandler(c *cli.Context) {
 	var (
 		y           = loadYaml(c)
@@ -116,8 +121,8 @@ func newHandler(c *cli.Context) {
 	routes[route] = m
 
 	b, _ := yaml.Marshal(y)
-	cfg := filepath.Join(getProjectPath(c), "config.yml")
-	ioutil.WriteFile(cfg, b, 0666)
+	cfg := filepath.Join(getProjectPath(c), configFile())
+	ioutil.WriteFile(cfg, b, FILEMODE)
 }
 
 // parse config file to generate handler file in handlers package
@@ -163,7 +168,7 @@ func createHandlerFile(handler, handlerpkg, where string) {
 
 	tpl, _ := template.New("handler").Parse(TPLHANDLER)
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, FILEMODE)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -185,17 +190,22 @@ func createDirectories(out, hpkg string) {
 	} {
 
 		path := filepath.Join(out, p)
-		if err := os.MkdirAll(path, 0776); err != nil {
+		if err := os.MkdirAll(path, DIRMODE); err != nil {
 			log.Println(err)
 		}
 	}
+
+	// create a basic package.go file in handlers
+	str := fmt.Sprintf("// Handlers documentation\npackage %s", hpkg)
+	ioutil.WriteFile(filepath.Join(out, hpkg, "package.go"), []byte(str), FILEMODE)
+
 }
 
 // create a config.yml file
 func createConfig(c *cli.Context) {
 	out := getProjectPath(c)
 	appname := c.GlobalString(PROJECT_OPT)
-	p := filepath.Join(out, "config.yml")
+	p := filepath.Join(out, CONFIGNAME)
 
 	y := ymlstruct{
 		"listen":    ":8000",
@@ -210,7 +220,7 @@ func createConfig(c *cli.Context) {
 	}
 	b, _ := yaml.Marshal(y)
 
-	ioutil.WriteFile(p, b, 0666)
+	ioutil.WriteFile(p, b, FILEMODE)
 }
 
 // create application in project
@@ -218,7 +228,7 @@ func createApp(c *cli.Context) {
 	out := getProjectPath(c)
 	p := filepath.Join(out, "main.go")
 
-	f, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY, 0666)
+	f, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY, FILEMODE)
 	if err != nil {
 		log.Print(err)
 		return
@@ -227,22 +237,44 @@ func createApp(c *cli.Context) {
 
 	tpl, _ := template.New("main").Parse(TPLAPP)
 	tpl.Execute(f, map[string]string{
-		"Project":     c.GlobalString(PROJECT_OPT),
+		"Project":     getProjectName(c),
 		"HandlersPKG": c.GlobalString(HANDLER_OPT),
 	})
 
 }
 
-// returns project path
+// returns the project name.
+func getProjectName(c *cli.Context) string {
+	if c.Command.Name == "app" {
+		if len(c.Args()) > 0 {
+			return c.Args()[0]
+		}
+	}
+	return c.GlobalString(PROJECT_OPT)
+}
+
+// returns project path.
 func getProjectPath(c *cli.Context) string {
+	_, err := os.Stat(configFile())
+	if err == nil {
+		r, err := filepath.Abs(".")
+		if err != nil {
+			log.Fatal(err)
+		}
+		return r
+	}
 	to := c.GlobalString(PROJECT_OPT)
+	args := c.Args()
+	if len(args) > 0 {
+		to = args[0]
+	}
 	return filepath.Join(GOPATH, "src", to)
 }
 
 // load config.yml file
 func loadYaml(c *cli.Context) ymlstruct {
 	out := getProjectPath(c)
-	out = filepath.Join(out, "config.yml")
+	out = filepath.Join(out, configFile())
 	b, err := ioutil.ReadFile(out)
 	if err != nil {
 		log.Fatal(err)
@@ -251,4 +283,15 @@ func loadYaml(c *cli.Context) ymlstruct {
 	y := ymlstruct{}
 	yaml.Unmarshal(b, y)
 	return y
+}
+
+// configFile returns the used "configuration yaml" filename
+func configFile() string {
+	_, err := os.Stat(DEPRECATED_CONFIGNAME)
+	if err == nil {
+		log.Println("[WARN] config.yml file is now deprecated name, please move your file to kwiscale.yml")
+		return DEPRECATED_CONFIGNAME
+	}
+
+	return CONFIGNAME
 }
